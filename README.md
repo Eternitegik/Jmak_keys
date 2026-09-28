@@ -1,6 +1,6 @@
 # Jmak_keys — Тренажёр мышечной памяти нажатия клавиши
 
-![Jmak_keys Demo](https://eternitegik.github.io/Jmak_keys/) <!-- Замени на реальную ссылку после настройки GitHub Pages -->
+[Jmak_keys Demo](https://eternitegik.github.io/Jmak_keys/)
 
 Интерактивный веб-тренажёр для развития скорости и точности нажатия клавиш на клавиатуре. Проект написан на чистом HTML, CSS и JavaScript.
 
