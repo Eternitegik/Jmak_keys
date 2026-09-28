@@ -1,5 +1,5 @@
 // ==================== СОСТОЯНИЕ ====================
-let state = 'IDLE';
+let state = 'IDLE'; // IDLE | COUNTDOWN | TASK | FINISHED
 let appliedSettings = {
   letters: true,
   letterSet: 'ru',
@@ -11,10 +11,13 @@ let appliedSettings = {
   cycles: 5,
   repeats: 1
 };
-let symbolPool = [];
+let runSettings = appliedSettings; // снимок настроек на время текущего задания
 let currentStartKey = ' ';
 let countdownInterval = null;
 let countdownValue = 5;
+let nextTimeout = null;
+let promptTimeout = null;
+let inputLocked = false;
 let sequence = [];
 let currentIndex = 0;
 let currentSymbol = '';
@@ -44,6 +47,7 @@ const cyclesVal = document.getElementById('cyclesVal');
 const repeatsSlider = document.getElementById('repeats');
 const repeatsVal = document.getElementById('repeatsVal');
 const applyBtn = document.getElementById('applyBtn');
+const abortBtn = document.getElementById('abortBtn');
 
 // ==================== ИНДИКАЦИЯ ИЗМЕНЕНИЙ ====================
 function markSettingsChanged() {
@@ -58,8 +62,12 @@ const SPECIAL_POOL = '!@#$%^&*()_+-=[]{};:"\\|,.<>/?`~'.split('');
 const DIGITS_POOL = '0123456789'.split('');
 const CONTROL_POOL = ['Shift', 'Control', 'Alt', 'Tab', 'CapsLock', 'Backspace', 'Delete', 'Insert', 'Home', 'End', 'PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape', 'Meta'];
 
+// Клавиши, которые нужно нажать, чтобы набрать другой символ (Shift+1 → «!»).
+// Если они не являются целью, их нажатие не считается ошибкой.
+const HELPER_KEYS = ['Shift', 'AltGraph', 'Dead', 'Process', 'Unidentified'];
+
 function getLetterPool(letterSet) {
-  const ru = 'йцукенгшщзхъфывапролджэячсмитьбю'.split('');
+  const ru = 'йцукенгшщзхъфывапролджэячсмитьбюё'.split('');
   const en = 'qwertyuiopasdfghjklzxcvbnm'.split('');
   if (letterSet === 'ru') return ru;
   if (letterSet === 'en') return en;
@@ -84,9 +92,30 @@ function getCategoryPools(settings) {
   return pools.filter(p => p.length > 0);
 }
 
-// Полный пул всех символов (для обратной совместимости)
-function getSymbolPool(settings) {
-  return getCategoryPools(settings).flat();
+// ==================== ВСПОМОГАТЕЛЬНОЕ ====================
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Читаемое имя клавиши (пробел иначе показывался бы пустой строкой)
+function displayKey(key) {
+  return key === ' ' ? 'Пробел' : key;
+}
+
+// Буквы сравниваем без учёта регистра (CapsLock / Shift не должны давать ошибку)
+function normalizeKey(key) {
+  return key.length === 1 ? key.toLowerCase() : key;
+}
+
+// Показывает текст в большом квадрате; длинные названия уменьшает, чтобы влезли
+function setKeyBox(text, cls) {
+  keyBoxEl.textContent = text;
+  keyBoxEl.className = 'key-box' + (cls ? ' ' + cls : '') + (text.length > 2 ? ' long' : '');
 }
 
 // ==================== НАСТРОЙКИ ====================
@@ -128,6 +157,20 @@ function updateSequenceVisibility() {
   }
 }
 
+function readSettingsFromDom() {
+  return {
+    letters: cbLetters.checked,
+    letterSet: document.querySelector('input[name="letterSet"]:checked').value,
+    special: cbSpecial.checked,
+    digits: cbDigits.checked,
+    fkeys: cbFkeys.checked,
+    control: cbControl.checked,
+    showSequence: cbShowSeq.checked,
+    cycles: parseInt(cyclesSlider.value, 10),
+    repeats: parseInt(repeatsSlider.value, 10)
+  };
+}
+
 // ==================== ОБРАБОТЧИКИ НАСТРОЕК ====================
 cbLetters.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
 cbSpecial.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
@@ -151,29 +194,25 @@ repeatsSlider.addEventListener('input', () => {
 });
 
 applyBtn.addEventListener('click', () => {
-  appliedSettings = {
-    letters: cbLetters.checked,
-    letterSet: document.querySelector('input[name="letterSet"]:checked').value,
-    special: cbSpecial.checked,
-    digits: cbDigits.checked,
-    fkeys: cbFkeys.checked,
-    control: cbControl.checked,
-    showSequence: cbShowSeq.checked,
-    cycles: parseInt(cyclesSlider.value),
-    repeats: parseInt(repeatsSlider.value)
-  };
-  symbolPool = getSymbolPool(appliedSettings);
+  // Во время задания настройки менять нельзя (кнопка в это время disabled)
+  if (state === 'TASK') return;
+  appliedSettings = readSettingsFromDom();
   updateSettingsView();
   updateSequenceVisibility();
   clearSettingsChanged();
+  // Снимаем фокус, чтобы Пробел/Enter запускали задание, а не нажимали кнопку повторно
+  applyBtn.blur();
 });
 
 // ==================== ПОСТРОЕНИЕ ПОСЛЕДОВАТЕЛЬНОСТИ ====================
 // Гарантирует по одному символу из каждой включённой категории
 // и отсутствие двух одинаковых символов подряд между циклами.
-function buildCycleSequence() {
-  const N = appliedSettings.cycles;
-  const pools = getCategoryPools(appliedSettings);
+// Пулы категорий не пересекаются, поэтому «обязательные» символы
+// не могут совпасть друг с другом; остальные позиции заполняются
+// с проверкой обоих соседей.
+function buildCycleSequence(settings) {
+  const N = settings.cycles;
+  const pools = getCategoryPools(settings);
 
   if (pools.length === 0) return [];
 
@@ -213,21 +252,6 @@ function buildCycleSequence() {
     result[i] = sym;
   }
 
-  // Финальная правка: устраняем возможные совпадения, оставшиеся от
-  // заранее размещённых «обязательных» символов.
-  for (let i = 1; i < N; i++) {
-    if (result[i] === result[i - 1]) {
-      for (let j = i + 1; j < N; j++) {
-        const leftOk = result[j] !== result[i - 1];
-        const rightOk = (j === N - 1) || (result[j] !== result[j + 1]);
-        if (leftOk && rightOk) {
-          [result[i], result[j]] = [result[j], result[i]];
-          break;
-        }
-      }
-    }
-  }
-
   return result;
 }
 
@@ -240,25 +264,32 @@ function updateStartPrompt() {
   statusEl.textContent = `Для начала нажмите ${getStartKeyName(currentStartKey)}`;
 }
 
+function clearTimers() {
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+  if (nextTimeout) { clearTimeout(nextTimeout); nextTimeout = null; }
+  if (promptTimeout) { clearTimeout(promptTimeout); promptTimeout = null; }
+}
+
 function beginCountdown() {
+  clearTimers();
   resultsEl.innerHTML = '';
   sequenceEl.innerHTML = '';
   progressEl.textContent = '';
   pressTimeEl.textContent = '';
-  keyBoxEl.textContent = '—';
-  keyBoxEl.className = 'key-box idle';
+  setKeyBox('—', 'idle');
 
   state = 'COUNTDOWN';
+  abortBtn.hidden = false;
   countdownValue = 5;
   statusEl.textContent = countdownValue;
 
-  if (countdownInterval) clearInterval(countdownInterval);
   countdownInterval = setInterval(() => {
     countdownValue--;
     if (countdownValue > 0) {
       statusEl.textContent = countdownValue;
     } else {
       clearInterval(countdownInterval);
+      countdownInterval = null;
       startTask();
     }
   }, 1000);
@@ -266,14 +297,24 @@ function beginCountdown() {
 
 function startTask() {
   state = 'TASK';
+  inputLocked = false;
+  applyBtn.disabled = true;
+
+  // Фиксируем настройки на время задания
+  runSettings = Object.assign({}, appliedSettings);
+
+  // Снимаем фокус с элементов настроек, иначе они «глотают» нажатия
+  if (document.activeElement && document.activeElement !== document.body) {
+    document.activeElement.blur();
+  }
 
   // Строим по циклам (по одному символу на цикл)
-  const cyclesSymbols = buildCycleSequence();
+  const cyclesSymbols = buildCycleSequence(runSettings);
 
   // Разворачиваем в последовательность нажатий с учётом повторов
   sequence = [];
   for (const sym of cyclesSymbols) {
-    for (let j = 0; j < appliedSettings.repeats; j++) {
+    for (let j = 0; j < runSettings.repeats; j++) {
       sequence.push(sym);
     }
   }
@@ -285,14 +326,29 @@ function startTask() {
   nextSymbol();
 }
 
+function abortTask() {
+  if (state !== 'COUNTDOWN' && state !== 'TASK') return;
+  clearTimers();
+  inputLocked = false;
+  state = 'IDLE';
+  applyBtn.disabled = false;
+  abortBtn.hidden = true;
+  sequenceEl.innerHTML = '';
+  chipElements = [];
+  progressEl.textContent = '';
+  pressTimeEl.textContent = '';
+  setKeyBox('—', 'idle');
+  updateStartPrompt();
+}
+
 function renderSequence() {
   sequenceEl.innerHTML = '';
   chipElements = [];
-  if (!appliedSettings.showSequence) return;
+  if (!runSettings.showSequence) return;
   sequence.forEach((sym, i) => {
     const chip = document.createElement('span');
     chip.className = 'chip';
-    chip.textContent = sym;
+    chip.textContent = displayKey(sym);
     if (i === currentIndex) chip.classList.add('current');
     sequenceEl.appendChild(chip);
     chipElements.push(chip);
@@ -300,34 +356,38 @@ function renderSequence() {
 }
 
 function nextSymbol() {
+  nextTimeout = null;
+  if (state !== 'TASK') return;
   if (currentIndex >= sequence.length) {
     finishTask();
     return;
   }
+  inputLocked = false;
   currentSymbol = sequence[currentIndex];
   startTime = Date.now();
-  statusEl.textContent = `Жми ${currentSymbol}`;
-  keyBoxEl.textContent = currentSymbol;
-  keyBoxEl.className = 'key-box';
+  statusEl.textContent = `Жми ${displayKey(currentSymbol)}`;
+  setKeyBox(displayKey(currentSymbol));
   pressTimeEl.textContent = '';
 
-  if (appliedSettings.showSequence) {
+  if (runSettings.showSequence) {
     chipElements.forEach((chip, i) => {
       chip.classList.remove('current');
       if (i === currentIndex) chip.classList.add('current');
     });
   }
 
-  const cycle = Math.floor(currentIndex / appliedSettings.repeats) + 1;
-  const repeat = (currentIndex % appliedSettings.repeats) + 1;
-  progressEl.textContent = `Цикл ${cycle}/${appliedSettings.cycles}, повтор ${repeat}/${appliedSettings.repeats}`;
+  const cycle = Math.floor(currentIndex / runSettings.repeats) + 1;
+  const repeat = (currentIndex % runSettings.repeats) + 1;
+  progressEl.textContent = `Цикл ${cycle}/${runSettings.cycles}, повтор ${repeat}/${runSettings.repeats}`;
 }
 
 function finishTask() {
   state = 'FINISHED';
+  inputLocked = false;
+  applyBtn.disabled = false;
+  abortBtn.hidden = true;
   statusEl.textContent = 'Задание выполнено!';
-  keyBoxEl.textContent = '—';
-  keyBoxEl.className = 'key-box idle';
+  setKeyBox('—', 'idle');
   pressTimeEl.textContent = '';
   progressEl.textContent = '';
   renderResults();
@@ -335,8 +395,11 @@ function finishTask() {
   requestAnimationFrame(() => {
     jmyakPanel.scrollTop = jmyakPanel.scrollHeight;
   });
-  setTimeout(() => {
-    updateStartPrompt();
+  if (promptTimeout) clearTimeout(promptTimeout);
+  promptTimeout = setTimeout(() => {
+    promptTimeout = null;
+    // Не затираем отсчёт/задание, если пользователь уже запустил новое
+    if (state === 'FINISHED' || state === 'IDLE') updateStartPrompt();
   }, 1500);
 }
 
@@ -349,11 +412,11 @@ function renderResults() {
     const avgTime = events.length ? Math.round(totalTime / events.length) : 0;
     const pressesHtml = events.map(e => {
       const cls = e.isCorrect ? 'event-correct' : 'event-wrong';
-      return `<span class="${cls}">${e.key} (${e.time} мс)</span>`;
+      return `<span class="${cls}">${escapeHtml(displayKey(e.key))} (${e.time} мс)</span>`;
     }).join(', ');
     html += `<tr>
       <td>${idx + 1}</td>
-      <td>${item.target}</td>
+      <td>${escapeHtml(displayKey(item.target))}</td>
       <td>${pressesHtml || '—'}</td>
       <td>${errors}</td>
       <td>${avgTime}</td>
@@ -364,65 +427,61 @@ function renderResults() {
 }
 
 // ==================== ОБРАБОТКА КЛАВИШ ====================
-window.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') return;
+abortBtn.addEventListener('click', abortTask);
 
+window.addEventListener('keydown', (e) => {
   if (state === 'IDLE' || state === 'FINISHED') {
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'TEXTAREA') return;
     if (e.key === currentStartKey) {
       e.preventDefault();
-      beginCountdown();
+      if (!e.repeat) beginCountdown();
+    } else if (e.key === ' ') {
+      // Пробел не должен прокручивать страницу
+      e.preventDefault();
     }
+  } else if (state === 'COUNTDOWN') {
+    if (e.key === ' ') e.preventDefault();
   } else if (state === 'TASK') {
     e.preventDefault();
+
+    // Автоповтор, ввод во время паузы между символами и «вспомогательные» клавиши игнорируем
+    if (e.repeat || inputLocked) return;
+    if (HELPER_KEYS.includes(e.key) && e.key !== currentSymbol) return;
+
     const time = Date.now() - startTime;
-    const cycleIdx = Math.floor(currentIndex / appliedSettings.repeats);
+    const cycleIdx = Math.floor(currentIndex / runSettings.repeats);
+    const cycle = taskEvents[cycleIdx];
+    if (!cycle) return;
 
-    if (e.key === currentSymbol) {
-      keyBoxEl.textContent = currentSymbol;
-      keyBoxEl.className = 'key-box correct';
+    if (normalizeKey(e.key) === normalizeKey(currentSymbol)) {
+      inputLocked = true;
+      setKeyBox(displayKey(currentSymbol), 'correct');
       pressTimeEl.textContent = `${time} мс`;
-      taskEvents[cycleIdx].events.push({ key: e.key, time, isCorrect: true });
+      cycle.events.push({ key: e.key, time, isCorrect: true });
 
-      if (appliedSettings.showSequence && chipElements[currentIndex]) {
+      if (runSettings.showSequence && chipElements[currentIndex]) {
         chipElements[currentIndex].classList.remove('current');
         chipElements[currentIndex].classList.add('correct');
       }
 
       currentIndex++;
-      setTimeout(() => {
-        nextSymbol();
-      }, 200);
+      nextTimeout = setTimeout(nextSymbol, 200);
     } else {
-      keyBoxEl.textContent = e.key;
-      keyBoxEl.className = 'key-box wrong';
+      setKeyBox(displayKey(e.key), 'wrong');
       pressTimeEl.textContent = `${time} мс (ошибка)`;
-      taskEvents[cycleIdx].events.push({ key: e.key, time, isCorrect: false });
+      cycle.events.push({ key: e.key, time, isCorrect: false });
     }
   }
 });
 
-window.addEventListener('keydown', (e) => {
-  if (e.key === ' ' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'TEXTAREA') {
-    e.preventDefault();
-  }
-}, { passive: false });
-
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
+// Сначала приводим DOM в согласованное состояние (браузер мог восстановить
+// значения формы), затем читаем настройки и только потом обновляем интерфейс.
 validateCheckboxes();
 updateSettingsDisplay();
+appliedSettings = readSettingsFromDom();
+runSettings = appliedSettings;
 updateSettingsView();
 updateStartPrompt();
 updateSequenceVisibility();
-
-appliedSettings = {
-  letters: cbLetters.checked,
-  letterSet: document.querySelector('input[name="letterSet"]:checked').value,
-  special: cbSpecial.checked,
-  digits: cbDigits.checked,
-  fkeys: cbFkeys.checked,
-  control: cbControl.checked,
-  showSequence: cbShowSeq.checked,
-  cycles: parseInt(cyclesSlider.value),
-  repeats: parseInt(repeatsSlider.value)
-};
-symbolPool = getSymbolPool(appliedSettings);

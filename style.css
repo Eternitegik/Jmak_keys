@@ -108,6 +108,31 @@ input[type="range"] {
   background: #0757b8;
 }
 
+.apply:disabled {
+  background: #8c959f;
+  cursor: not-allowed;
+}
+
+.abort {
+  align-self: center;
+  padding: 8px 24px;
+  background: #ffffff;
+  color: #cf222e;
+  border: 2px solid #cf222e;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.abort:hover {
+  background: #ffebe9;
+}
+
+.abort[hidden] {
+  display: none;
+}
+
 /* Красная обводка, когда настройки изменены, но не применены */
 .apply.changed {
   border-color: #cf222e;
@@ -145,7 +170,12 @@ input[type="range"] {
   cursor: pointer;
   font-weight: 600;
   user-select: none;
-  outline: none;
+}
+
+.info summary:focus-visible,
+.settings-view summary:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: -2px;
 }
 
 .info summary:hover {
@@ -177,7 +207,6 @@ input[type="range"] {
   cursor: pointer;
   font-weight: 600;
   user-select: none;
-  outline: none;
 }
 
 .settings-view summary:hover {
@@ -230,6 +259,14 @@ input[type="range"] {
   color: #8c959f;
   transition: all 0.15s ease;
   box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+/* Длинные названия клавиш (Backspace, PageDown, Пробел...) */
+.key-box.long {
+  font-size: 22px;
+  padding: 0 6px;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .key-box.idle {
