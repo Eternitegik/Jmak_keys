@@ -66,9 +66,14 @@ const SPECIAL_POOL_RU = '!";%:?*()_+-=\\/,.'.split('');
 const DIGITS_POOL = '0123456789'.split('');
 const CONTROL_POOL = ['Shift', 'Control', 'Alt', 'Tab', 'CapsLock', 'Backspace', 'Delete', 'Insert', 'Home', 'End', 'PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape', 'Meta'];
 
-// Клавиши, которые нужно нажать, чтобы набрать другой символ (Shift+1 → «!»).
-// Если они не являются целью, их нажатие не считается ошибкой.
-const HELPER_KEYS = ['Shift', 'AltGraph', 'Dead', 'Process', 'Unidentified'];
+// Клавиши-модификаторы. Их нажатие засчитывается только при отпускании и только
+// если это было одиночное нажатие: в комбинациях (Alt+Shift для смены раскладки,
+// Shift+1 для «!», Ctrl+Shift и т.п.) они пропускаются.
+const MODIFIER_FLAGS = { Shift: 'shiftKey', Control: 'ctrlKey', Alt: 'altKey', Meta: 'metaKey' };
+// Служебные события, которые никогда не считаются нажатием (AltGr, мёртвые клавиши, IME)
+const IGNORED_KEYS = ['AltGraph', 'Dead', 'Process', 'Unidentified'];
+// Удерживаемые сейчас модификаторы: key → { time, combo }
+const heldModifiers = new Map();
 
 function getLetterPool(letterSet) {
   const ru = 'йцукенгшщзхъфывапролджэячсмитьбюё'.split('');
@@ -310,6 +315,7 @@ function beginCountdown() {
 function startTask() {
   state = 'TASK';
   inputLocked = false;
+  heldModifiers.clear();
   applyBtn.disabled = true;
 
   // Фиксируем настройки на время задания
@@ -342,6 +348,7 @@ function abortTask() {
   if (state !== 'COUNTDOWN' && state !== 'TASK') return;
   clearTimers();
   inputLocked = false;
+  heldModifiers.clear();
   state = 'IDLE';
   applyBtn.disabled = false;
   abortBtn.hidden = true;
@@ -396,6 +403,7 @@ function nextSymbol() {
 function finishTask() {
   state = 'FINISHED';
   inputLocked = false;
+  heldModifiers.clear();
   applyBtn.disabled = false;
   abortBtn.hidden = true;
   statusEl.textContent = 'Задание выполнено!';
@@ -441,6 +449,38 @@ function renderResults() {
 // ==================== ОБРАБОТКА КЛАВИШ ====================
 abortBtn.addEventListener('click', abortTask);
 
+function dropStaleModifiers(e) {
+  for (const key of heldModifiers.keys()) {
+    if (!e[MODIFIER_FLAGS[key]]) heldModifiers.delete(key);
+  }
+}
+
+// Регистрирует нажатие клавиши (верное или ошибочное) в текущем цикле
+function handlePress(key, time) {
+  if (state !== 'TASK' || inputLocked) return;
+  const cycle = taskEvents[Math.floor(currentIndex / runSettings.repeats)];
+  if (!cycle) return;
+
+  if (normalizeKey(key) === normalizeKey(currentSymbol)) {
+    inputLocked = true;
+    setKeyBox(displayKey(currentSymbol), 'correct');
+    pressTimeEl.textContent = `${time} мс`;
+    cycle.events.push({ key, time, isCorrect: true });
+
+    if (runSettings.showSequence && chipElements[currentIndex]) {
+      chipElements[currentIndex].classList.remove('current');
+      chipElements[currentIndex].classList.add('correct');
+    }
+
+    currentIndex++;
+    nextTimeout = setTimeout(nextSymbol, 200);
+  } else {
+    setKeyBox(displayKey(key), 'wrong');
+    pressTimeEl.textContent = `${time} мс (ошибка)`;
+    cycle.events.push({ key, time, isCorrect: false });
+  }
+}
+
 window.addEventListener('keydown', (e) => {
   if (state === 'IDLE' || state === 'FINISHED') {
     const tag = e.target.tagName;
@@ -457,34 +497,49 @@ window.addEventListener('keydown', (e) => {
   } else if (state === 'TASK') {
     e.preventDefault();
 
-    // Автоповтор, ввод во время паузы между символами и «вспомогательные» клавиши игнорируем
-    if (e.repeat || inputLocked) return;
-    if (HELPER_KEYS.includes(e.key) && e.key !== currentSymbol) return;
+    // Автоповтор игнорируем
+    if (e.repeat) return;
 
-    const time = Date.now() - startTime;
-    const cycleIdx = Math.floor(currentIndex / runSettings.repeats);
-    const cycle = taskEvents[cycleIdx];
-    if (!cycle) return;
+    // Убираем «залипшие» записи: если у события уже нет флага модификатора,
+    // значит его keyup мы не получили (например, после Alt+Tab)
+    dropStaleModifiers(e);
 
-    if (normalizeKey(e.key) === normalizeKey(currentSymbol)) {
-      inputLocked = true;
-      setKeyBox(displayKey(currentSymbol), 'correct');
-      pressTimeEl.textContent = `${time} мс`;
-      cycle.events.push({ key: e.key, time, isCorrect: true });
+    // Любая клавиша, нажатая при удерживаемом модификаторе, делает его частью комбинации
+    const alreadyHeld = heldModifiers.size > 0;
+    heldModifiers.forEach(m => { m.combo = true; });
 
-      if (runSettings.showSequence && chipElements[currentIndex]) {
-        chipElements[currentIndex].classList.remove('current');
-        chipElements[currentIndex].classList.add('correct');
+    if (IGNORED_KEYS.includes(e.key)) return;
+
+    if (e.key in MODIFIER_FLAGS) {
+      // Решение о модификаторе принимается при отпускании (keyup)
+      if (!inputLocked) {
+        heldModifiers.set(e.key, { time: Date.now() - startTime, combo: alreadyHeld });
       }
-
-      currentIndex++;
-      nextTimeout = setTimeout(nextSymbol, 200);
-    } else {
-      setKeyBox(displayKey(e.key), 'wrong');
-      pressTimeEl.textContent = `${time} мс (ошибка)`;
-      cycle.events.push({ key: e.key, time, isCorrect: false });
+      return;
     }
+
+    handlePress(e.key, Date.now() - startTime);
   }
+});
+
+window.addEventListener('keyup', (e) => {
+  if (state !== 'TASK' || !(e.key in MODIFIER_FLAGS)) return;
+  const held = heldModifiers.get(e.key);
+  if (!held) return;
+  heldModifiers.delete(e.key);
+  // Одиночное нажатие модификатора засчитываем, комбинацию — пропускаем
+  if (!held.combo) handlePress(e.key, held.time);
+});
+
+// Потеря фокуса окна (Alt+Tab, меню «Пуск» по Win): keyup мы можем не получить.
+// Клавиша Win, нажатая одна, открывает «Пуск» и уводит фокус — засчитываем её сразу.
+// Остальные модификаторы при потере фокуса — это, как правило, комбинация, их пропускаем.
+window.addEventListener('blur', () => {
+  if (state === 'TASK') {
+    const meta = heldModifiers.get('Meta');
+    if (meta && !meta.combo) handlePress('Meta', meta.time);
+  }
+  heldModifiers.clear();
 });
 
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
