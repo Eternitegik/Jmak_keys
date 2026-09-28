@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // Применяем сохранённую тему до отрисовки страницы, чтобы не было
+  // мигания тёмной темой (она задана по умолчанию в CSS) перед светлой.
+  (function () {
+    try {
+      if (localStorage.getItem('jmak-theme') === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } catch (e) {}
+  })();
+</script>
 <title>Жмяк — тренажёр нажатий</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -42,6 +53,14 @@
     </div>
 
     <button id="applyBtn" class="apply">Применить</button>
+
+    <div class="theme-toggle">
+      <span>Тёмная тема</span>
+      <label class="switch">
+        <input type="checkbox" id="themeToggle" checked>
+        <span class="switch-track"></span>
+      </label>
+    </div>
   </aside>
 
   <!-- ================= ПРАВЫЙ БЛОК: ЖМЯК ================= -->

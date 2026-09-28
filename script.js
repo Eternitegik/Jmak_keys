@@ -48,6 +48,44 @@ const repeatsSlider = document.getElementById('repeats');
 const repeatsVal = document.getElementById('repeatsVal');
 const applyBtn = document.getElementById('applyBtn');
 const abortBtn = document.getElementById('abortBtn');
+const themeToggle = document.getElementById('themeToggle');
+
+// ==================== ТЕМА ====================
+// Инлайн-скрипт в <head> уже применил сохранённую тему до отрисовки страницы
+// (устраняет мигание тёмной темой по умолчанию); здесь только синхронизируем
+// переключатель и обрабатываем его переключение.
+function getStoredTheme() {
+  try {
+    return localStorage.getItem('jmak-theme');
+  } catch (e) {
+    return null;
+  }
+}
+
+function storeTheme(theme) {
+  try {
+    localStorage.setItem('jmak-theme', theme);
+  } catch (e) {
+    // localStorage недоступен (приватный режим и т.п.) — тема просто не сохранится
+  }
+}
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  themeToggle.checked = theme !== 'light';
+}
+
+themeToggle.addEventListener('change', () => {
+  const theme = themeToggle.checked ? 'dark' : 'light';
+  applyTheme(theme);
+  storeTheme(theme);
+});
+
+applyTheme(getStoredTheme() === 'light' ? 'light' : 'dark');
 
 // ==================== ИНДИКАЦИЯ ИЗМЕНЕНИЙ ====================
 function markSettingsChanged() {
