@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Жмяк — тренажёр нажатий</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ================= ЛЕВЫЙ БЛОК: НАСТРОЙКИ ================= -->
+  <aside class="panel settings">
+    <h2 class="panel-title">Настройки</h2>
+
+    <label class="check">
+      <input type="checkbox" id="cbLetters" checked>
+      <span>Набор символов</span>
+    </label>
+
+    <div class="radio-group" id="letterGroup">
+      <label class="radio"><input type="radio" name="letterSet" value="ru" checked><span>Рус</span></label>
+      <label class="radio"><input type="radio" name="letterSet" value="en"><span>Eng</span></label>
+      <label class="radio"><input type="radio" name="letterSet" value="all"><span>Все</span></label>
+    </div>
+
+    <label class="check"><input type="checkbox" id="cbSpecial"><span>Спец. символы</span></label>
+    <label class="check"><input type="checkbox" id="cbDigits"><span>Цифры</span></label>
+    <label class="check"><input type="checkbox" id="cbFkeys"><span>F клавиши</span></label>
+    <label class="check"><input type="checkbox" id="cbControl"><span>Управляющие клавиши</span></label>
+    <label class="check"><input type="checkbox" id="cbShowSeq"><span>Отображение списка букв</span></label>
+
+    <div class="slider">
+      <div class="slider-head"><span>Количество циклов</span><b id="cyclesVal">5</b></div>
+      <input type="range" id="cycles" min="1" max="100" step="1" value="5">
+    </div>
+
+    <div class="slider">
+      <div class="slider-head"><span>Количество повторений клавиши</span><b id="repeatsVal">1</b></div>
+      <input type="range" id="repeats" min="1" max="10" step="1" value="1">
+    </div>
+
+    <button id="applyBtn" class="apply">Применить</button>
+  </aside>
+
+  <!-- ================= ПРАВЫЙ БЛОК: ЖМЯК ================= -->
+  <main class="panel jmyak" id="jmyakPanel">
+
+    <details class="info" id="infoBlock">
+      <summary>Информация</summary>
+      <div class="info-body">
+        <p>Тренажёр скорости нажатия клавиш.</p>
+        <ul>
+          <li>Выберите наборы символов слева и нажмите <b>«Применить»</b>.</li>
+          <li>Нажмите клавишу из подсказки (Пробел или Enter).</li>
+          <li>После отсчёта 5…1 появится символ — нажмите его на клавиатуре.</li>
+          <li><b>Количество циклов</b> — сколько разных символов будет в задании.</li>
+          <li><b>Количество повторений</b> — сколько раз подряд нужно нажать один и тот же символ.</li>
+          <li>Верное нажатие — зелёное, ошибочное — красное, ещё не нажатая клавиша — серая.</li>
+          <li>В конце появится таблица результатов: клавиша, ошибки, среднее время нажатия.</li>
+        </ul>
+        <p>Символы набираются в той раскладке, которая выбрана в настройках (Рус / Eng).</p>
+      </div>
+    </details>
+
+    <!-- Текущие настройки: теперь сворачиваемый блок, по умолчанию свёрнут -->
+    <details class="settings-view" id="settingsView">
+      <summary>Текущие настройки</summary>
+      <div class="settings-view-body" id="settingsViewBody"></div>
+    </details>
+
+    <div class="status" id="status">Для начала нажмите Пробел</div>
+
+    <div class="press-area">
+      <div class="key-box idle" id="keyBox">—</div>
+      <div class="press-time" id="pressTime"></div>
+    </div>
+
+    <div class="progress" id="progress"></div>
+    <div class="sequence hidden" id="sequence"></div>
+    <div class="results" id="results"></div>
+
+  </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
