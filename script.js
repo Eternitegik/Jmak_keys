@@ -14,7 +14,8 @@ let appliedSettings = {
 let runSettings = appliedSettings; // снимок настроек на время текущего задания
 let currentStartKey = ' ';
 let countdownInterval = null;
-let countdownValue = 5;
+const COUNTDOWN_SECONDS = 3; // отсчёт перед началом задания
+let countdownValue = COUNTDOWN_SECONDS;
 let nextTimeout = null;
 let promptTimeout = null;
 let inputLocked = false;
@@ -32,7 +33,6 @@ const pressTimeEl = document.getElementById('pressTime');
 const progressEl = document.getElementById('progress');
 const sequenceEl = document.getElementById('sequence');
 const resultsEl = document.getElementById('results');
-const settingsViewBody = document.getElementById('settingsViewBody');
 const jmyakPanel = document.getElementById('jmyakPanel');
 
 const cbLetters = document.getElementById('cbLetters');
@@ -150,22 +150,6 @@ function validateCheckboxes() {
   letterGroup.style.pointerEvents = cbLetters.checked ? 'auto' : 'none';
 }
 
-function updateSettingsView() {
-  const s = appliedSettings;
-  let html = '';
-  html += `Набор символов: ${s.letters ? 'вкл' : 'выкл'}`;
-  if (s.letters) html += ` (${s.letterSet === 'ru' ? 'Рус' : s.letterSet === 'en' ? 'Eng' : 'Все'})`;
-  html += '<br>';
-  html += `Спец. символы: ${s.special ? 'вкл' : 'выкл'}<br>`;
-  html += `Цифры: ${s.digits ? 'вкл' : 'выкл'}<br>`;
-  html += `F клавиши: ${s.fkeys ? 'вкл' : 'выкл'}<br>`;
-  html += `Управляющие клавиши: ${s.control ? 'вкл' : 'выкл'}<br>`;
-  html += `Отображение списка букв: ${s.showSequence ? 'вкл' : 'выкл'}<br>`;
-  html += `Количество циклов: ${s.cycles}<br>`;
-  html += `Количество повторений: ${s.repeats}`;
-  settingsViewBody.innerHTML = html;
-}
-
 function updateSequenceVisibility() {
   if (appliedSettings.showSequence) {
     sequenceEl.classList.remove('hidden');
@@ -214,7 +198,6 @@ applyBtn.addEventListener('click', () => {
   // Во время задания настройки менять нельзя (кнопка в это время disabled)
   if (state === 'TASK') return;
   appliedSettings = readSettingsFromDom();
-  updateSettingsView();
   updateSequenceVisibility();
   clearSettingsChanged();
   // Снимаем фокус, чтобы Пробел/Enter запускали задание, а не нажимали кнопку повторно
@@ -297,7 +280,7 @@ function beginCountdown() {
 
   state = 'COUNTDOWN';
   abortBtn.hidden = false;
-  countdownValue = 5;
+  countdownValue = COUNTDOWN_SECONDS;
   statusEl.textContent = countdownValue;
 
   countdownInterval = setInterval(() => {
@@ -549,6 +532,5 @@ validateCheckboxes();
 updateSettingsDisplay();
 appliedSettings = readSettingsFromDom();
 runSettings = appliedSettings;
-updateSettingsView();
 updateStartPrompt();
 updateSequenceVisibility();

@@ -172,8 +172,7 @@ input[type="range"] {
   user-select: none;
 }
 
-.info summary:focus-visible,
-.settings-view summary:focus-visible {
+.info summary:focus-visible {
   outline: 2px solid #0969da;
   outline-offset: -2px;
 }
@@ -192,32 +191,6 @@ input[type="range"] {
 .info-body ul {
   margin: 8px 0;
   padding-left: 20px;
-}
-
-/* ----- Текущие настройки (сворачиваемый) ----- */
-.settings-view {
-  background: #ffffff;
-  border: 1px solid #d0d7de;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-
-.settings-view summary {
-  padding: 12px 16px;
-  cursor: pointer;
-  font-weight: 600;
-  user-select: none;
-}
-
-.settings-view summary:hover {
-  background: #f3f6f9;
-}
-
-.settings-view-body {
-  padding: 0 16px 16px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #24292f;
 }
 
 /* ----- Статус, клавиша, прогресс и т.д. ----- */
@@ -239,9 +212,10 @@ input[type="range"] {
 
 .press-area {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 30px;
+  gap: 12px;
   padding: 10px;
 }
 
@@ -293,8 +267,8 @@ input[type="range"] {
   font-size: 20px;
   font-weight: 600;
   color: #57606a;
-  min-width: 120px;
-  text-align: left;
+  min-height: 28px; /* резервируем место, чтобы блок не «прыгал» при появлении времени */
+  text-align: center;
 }
 
 .progress {
