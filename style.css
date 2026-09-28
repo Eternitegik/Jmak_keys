@@ -95,17 +95,27 @@ input[type="range"] {
   padding: 12px;
   background: #0969da;
   color: white;
-  border: none;
+  border: 3px solid transparent;
   border-radius: 6px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   margin-top: 10px;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
 .apply:hover {
   background: #0757b8;
+}
+
+/* Красная обводка, когда настройки изменены, но не применены */
+.apply.changed {
+  border-color: #cf222e;
+  box-shadow: 0 0 0 3px rgba(207, 34, 46, 0.25);
+}
+
+.apply.changed:hover {
+  background: #0969da;
 }
 
 /* ===== ПРАВЫЙ БЛОК ===== */

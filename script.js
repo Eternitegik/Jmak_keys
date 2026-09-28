@@ -29,7 +29,7 @@ const pressTimeEl = document.getElementById('pressTime');
 const progressEl = document.getElementById('progress');
 const sequenceEl = document.getElementById('sequence');
 const resultsEl = document.getElementById('results');
-const settingsViewBody = document.getElementById('settingsViewBody'); // <-- изменено
+const settingsViewBody = document.getElementById('settingsViewBody');
 const jmyakPanel = document.getElementById('jmyakPanel');
 
 const cbLetters = document.getElementById('cbLetters');
@@ -45,23 +45,51 @@ const repeatsSlider = document.getElementById('repeats');
 const repeatsVal = document.getElementById('repeatsVal');
 const applyBtn = document.getElementById('applyBtn');
 
-// ==================== НАСТРОЙКИ ====================
-function getSymbolPool(settings) {
-  let pool = [];
-  if (settings.letters) {
-    const ru = 'йцукенгшщзхъфывапролджэячсмитьбю'.split('');
-    const en = 'qwertyuiopasdfghjklzxcvbnm'.split('');
-    if (settings.letterSet === 'ru') pool.push(...ru);
-    else if (settings.letterSet === 'en') pool.push(...en);
-    else if (settings.letterSet === 'all') pool.push(...ru, ...en);
-  }
-  if (settings.special) pool.push(...'!@#$%^&*()_+-=[]{};:"\\|,.<>/?`~'.split(''));
-  if (settings.digits) pool.push(...'0123456789'.split(''));
-  if (settings.fkeys) { for (let i = 1; i <= 12; i++) pool.push('F' + i); }
-  if (settings.control) pool.push('Shift', 'Control', 'Alt', 'Tab', 'CapsLock', 'Backspace', 'Delete', 'Insert', 'Home', 'End', 'PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape', 'Meta');
-  return pool;
+// ==================== ИНДИКАЦИЯ ИЗМЕНЕНИЙ ====================
+function markSettingsChanged() {
+  applyBtn.classList.add('changed');
+}
+function clearSettingsChanged() {
+  applyBtn.classList.remove('changed');
 }
 
+// ==================== ПУЛЫ ПО КАТЕГОРИЯМ ====================
+const SPECIAL_POOL = '!@#$%^&*()_+-=[]{};:"\\|,.<>/?`~'.split('');
+const DIGITS_POOL = '0123456789'.split('');
+const CONTROL_POOL = ['Shift', 'Control', 'Alt', 'Tab', 'CapsLock', 'Backspace', 'Delete', 'Insert', 'Home', 'End', 'PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape', 'Meta'];
+
+function getLetterPool(letterSet) {
+  const ru = 'йцукенгшщзхъфывапролджэячсмитьбю'.split('');
+  const en = 'qwertyuiopasdfghjklzxcvbnm'.split('');
+  if (letterSet === 'ru') return ru;
+  if (letterSet === 'en') return en;
+  if (letterSet === 'all') return ru.concat(en);
+  return [];
+}
+
+function getFkeysPool() {
+  const fk = [];
+  for (let i = 1; i <= 12; i++) fk.push('F' + i);
+  return fk;
+}
+
+// Возвращает массив пулов для каждой включённой категории
+function getCategoryPools(settings) {
+  const pools = [];
+  if (settings.letters) pools.push(getLetterPool(settings.letterSet));
+  if (settings.special) pools.push(SPECIAL_POOL.slice());
+  if (settings.digits) pools.push(DIGITS_POOL.slice());
+  if (settings.fkeys) pools.push(getFkeysPool());
+  if (settings.control) pools.push(CONTROL_POOL.slice());
+  return pools.filter(p => p.length > 0);
+}
+
+// Полный пул всех символов (для обратной совместимости)
+function getSymbolPool(settings) {
+  return getCategoryPools(settings).flat();
+}
+
+// ==================== НАСТРОЙКИ ====================
 function updateSettingsDisplay() {
   cyclesVal.textContent = cyclesSlider.value;
   repeatsVal.textContent = repeatsSlider.value;
@@ -89,7 +117,7 @@ function updateSettingsView() {
   html += `Отображение списка букв: ${s.showSequence ? 'вкл' : 'выкл'}<br>`;
   html += `Количество циклов: ${s.cycles}<br>`;
   html += `Количество повторений: ${s.repeats}`;
-  settingsViewBody.innerHTML = html; // <-- изменено
+  settingsViewBody.innerHTML = html;
 }
 
 function updateSequenceVisibility() {
@@ -100,15 +128,27 @@ function updateSequenceVisibility() {
   }
 }
 
-// Обработчики настроек
-cbLetters.addEventListener('change', validateCheckboxes);
-cbSpecial.addEventListener('change', validateCheckboxes);
-cbDigits.addEventListener('change', validateCheckboxes);
-cbFkeys.addEventListener('change', validateCheckboxes);
-cbControl.addEventListener('change', validateCheckboxes);
+// ==================== ОБРАБОТЧИКИ НАСТРОЕК ====================
+cbLetters.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
+cbSpecial.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
+cbDigits.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
+cbFkeys.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
+cbControl.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
+cbShowSeq.addEventListener('change', markSettingsChanged);
 
-cyclesSlider.addEventListener('input', () => { cyclesVal.textContent = cyclesSlider.value; });
-repeatsSlider.addEventListener('input', () => { repeatsVal.textContent = repeatsSlider.value; });
+document.querySelectorAll('input[name="letterSet"]').forEach(r => {
+  r.addEventListener('change', markSettingsChanged);
+});
+
+cyclesSlider.addEventListener('input', () => {
+  cyclesVal.textContent = cyclesSlider.value;
+  markSettingsChanged();
+});
+
+repeatsSlider.addEventListener('input', () => {
+  repeatsVal.textContent = repeatsSlider.value;
+  markSettingsChanged();
+});
 
 applyBtn.addEventListener('click', () => {
   appliedSettings = {
@@ -125,7 +165,71 @@ applyBtn.addEventListener('click', () => {
   symbolPool = getSymbolPool(appliedSettings);
   updateSettingsView();
   updateSequenceVisibility();
+  clearSettingsChanged();
 });
+
+// ==================== ПОСТРОЕНИЕ ПОСЛЕДОВАТЕЛЬНОСТИ ====================
+// Гарантирует по одному символу из каждой включённой категории
+// и отсутствие двух одинаковых символов подряд между циклами.
+function buildCycleSequence() {
+  const N = appliedSettings.cycles;
+  const pools = getCategoryPools(appliedSettings);
+
+  if (pools.length === 0) return [];
+
+  const result = new Array(N).fill(null);
+
+  // Случайные позиции для «обязательных» символов — по одной на категорию
+  const positions = [];
+  for (let i = 0; i < N; i++) positions.push(i);
+  // Fisher–Yates
+  for (let i = positions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [positions[i], positions[j]] = [positions[j], positions[i]];
+  }
+
+  const placed = Math.min(pools.length, N);
+  for (let c = 0; c < placed; c++) {
+    const pool = pools[c];
+    const sym = pool[Math.floor(Math.random() * pool.length)];
+    result[positions[c]] = sym;
+  }
+
+  // Общий пул для заполнения оставшихся позиций
+  const allPool = pools.flat();
+
+  // Заполняем пустые позиции, избегая одинаковых соседей
+  for (let i = 0; i < N; i++) {
+    if (result[i] !== null) continue;
+    let sym;
+    let attempts = 0;
+    do {
+      sym = allPool[Math.floor(Math.random() * allPool.length)];
+      attempts++;
+    } while (attempts < 300 && (
+      (i > 0 && result[i - 1] === sym) ||
+      (i < N - 1 && result[i + 1] === sym)
+    ));
+    result[i] = sym;
+  }
+
+  // Финальная правка: устраняем возможные совпадения, оставшиеся от
+  // заранее размещённых «обязательных» символов.
+  for (let i = 1; i < N; i++) {
+    if (result[i] === result[i - 1]) {
+      for (let j = i + 1; j < N; j++) {
+        const leftOk = result[j] !== result[i - 1];
+        const rightOk = (j === N - 1) || (result[j] !== result[j + 1]);
+        if (leftOk && rightOk) {
+          [result[i], result[j]] = [result[j], result[i]];
+          break;
+        }
+      }
+    }
+  }
+
+  return result;
+}
 
 // ==================== ЛОГИКА ИГРЫ ====================
 function getStartKeyName(key) {
@@ -163,29 +267,18 @@ function beginCountdown() {
 function startTask() {
   state = 'TASK';
 
+  // Строим по циклам (по одному символу на цикл)
+  const cyclesSymbols = buildCycleSequence();
+
+  // Разворачиваем в последовательность нажатий с учётом повторов
   sequence = [];
-  let lastCycleSymbol = null;
-  const poolLen = symbolPool.length;
-  for (let i = 0; i < appliedSettings.cycles; i++) {
-    let sym;
-    let attempts = 0;
-    do {
-      sym = symbolPool[Math.floor(Math.random() * poolLen)];
-      attempts++;
-    } while (sym === lastCycleSymbol && poolLen > 1 && attempts < 200);
-    lastCycleSymbol = sym;
+  for (const sym of cyclesSymbols) {
     for (let j = 0; j < appliedSettings.repeats; j++) {
       sequence.push(sym);
     }
   }
 
-  taskEvents = [];
-  let idx = 0;
-  for (let i = 0; i < appliedSettings.cycles; i++) {
-    const targetSym = sequence[idx];
-    taskEvents.push({ target: targetSym, events: [] });
-    idx += appliedSettings.repeats;
-  }
+  taskEvents = cyclesSymbols.map(sym => ({ target: sym, events: [] }));
 
   currentIndex = 0;
   renderSequence();
