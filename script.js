@@ -210,6 +210,68 @@ function readSettingsFromDom() {
   };
 }
 
+// Переносит объект настроек в элементы формы — обратная операция к readSettingsFromDom.
+function applySettingsToDom(settings) {
+  cbLetters.checked = settings.letters;
+  const letterSetInput = document.querySelector(`input[name="letterSet"][value="${settings.letterSet}"]`);
+  if (letterSetInput) letterSetInput.checked = true;
+  cbSpecial.checked = settings.special;
+  cbDigits.checked = settings.digits;
+  cbFkeys.checked = settings.fkeys;
+  cbControl.checked = settings.control;
+  cbShowSeq.checked = settings.showSequence;
+  cyclesSlider.value = String(settings.cycles);
+  repeatsSlider.value = String(settings.repeats);
+}
+
+// ==================== СОХРАНЕНИЕ НАСТРОЕК (localStorage) ====================
+const SETTINGS_STORAGE_KEY = 'jmak-settings';
+
+// Читает настройки из localStorage и проверяет каждое поле — на случай
+// повреждённых данных или старой версии формата. Некорректные/отсутствующие
+// поля заменяются значением по умолчанию, а не роняют загрузку целиком.
+function loadStoredSettings() {
+  let raw;
+  try {
+    raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+  } catch (e) {
+    return null; // localStorage недоступен (приватный режим и т.п.)
+  }
+  if (!raw) return null;
+
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (e) {
+    return null; // повреждённый JSON
+  }
+  if (!data || typeof data !== 'object') return null;
+
+  const bool = (v, fallback) => (typeof v === 'boolean' ? v : fallback);
+  const clampInt = (v, min, max, fallback) =>
+    Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v))) : fallback;
+
+  return {
+    letters: bool(data.letters, true),
+    letterSet: ['ru', 'en', 'all'].includes(data.letterSet) ? data.letterSet : 'ru',
+    special: bool(data.special, false),
+    digits: bool(data.digits, false),
+    fkeys: bool(data.fkeys, false),
+    control: bool(data.control, false),
+    showSequence: bool(data.showSequence, false),
+    cycles: clampInt(data.cycles, 5, 100, 5),
+    repeats: clampInt(data.repeats, 1, 10, 1)
+  };
+}
+
+function saveSettings(settings) {
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch (e) {
+    // localStorage недоступен — настройки просто не сохранятся для следующего раза
+  }
+}
+
 // ==================== ОБРАБОТЧИКИ НАСТРОЕК ====================
 cbLetters.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
 cbSpecial.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
@@ -236,6 +298,7 @@ applyBtn.addEventListener('click', () => {
   // Во время задания настройки менять нельзя (кнопка в это время disabled)
   if (state === 'TASK') return;
   appliedSettings = readSettingsFromDom();
+  saveSettings(appliedSettings);
   updateSequenceVisibility();
   clearSettingsChanged();
   // Снимаем фокус, чтобы Пробел/Enter запускали задание, а не нажимали кнопку повторно
@@ -405,7 +468,7 @@ function nextSymbol() {
   inputLocked = false;
   currentSymbol = sequence[currentIndex];
   startTime = Date.now();
-  statusEl.textContent = `Жми ${displayKey(currentSymbol)}`;
+  statusEl.innerHTML = `Жми&nbsp;<span class="target-key">${escapeHtml(displayKey(currentSymbol))}</span>`;
   setKeyBox(displayKey(currentSymbol));
   pressTimeEl.textContent = '';
 
@@ -564,8 +627,12 @@ window.addEventListener('blur', () => {
 });
 
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
-// Сначала приводим DOM в согласованное состояние (браузер мог восстановить
-// значения формы), затем читаем настройки и только потом обновляем интерфейс.
+// Сначала переносим в форму настройки, сохранённые в localStorage (если они
+// есть), затем приводим DOM в согласованное состояние (браузер мог восстановить
+// свои собственные значения формы поверх них) и только потом читаем настройки
+// и обновляем интерфейс.
+const storedSettings = loadStoredSettings();
+if (storedSettings) applySettingsToDom(storedSettings);
 validateCheckboxes();
 updateSettingsDisplay();
 appliedSettings = readSettingsFromDom();
