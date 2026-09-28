@@ -58,7 +58,11 @@ function clearSettingsChanged() {
 }
 
 // ==================== ПУЛЫ ПО КАТЕГОРИЯМ ====================
+// Все спец. символы (набираются в английской раскладке)
 const SPECIAL_POOL = '!@#$%^&*()_+-=[]{};:"\\|,.<>/?`~'.split('');
+// Спец. символы, которые набираются в русской раскладке (Windows, ЙЦУКЕН) без переключения:
+// Shift+1..0 → ! " № ; % : ? * ( ), Shift+- → _, Shift+= → +, а также - = \ / , .
+const SPECIAL_POOL_RU = '!";%:?*()_+-=\\/,.'.split('');
 const DIGITS_POOL = '0123456789'.split('');
 const CONTROL_POOL = ['Shift', 'Control', 'Alt', 'Tab', 'CapsLock', 'Backspace', 'Delete', 'Insert', 'Home', 'End', 'PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape', 'Meta'];
 
@@ -81,11 +85,19 @@ function getFkeysPool() {
   return fk;
 }
 
+// Пул спец. символов зависит от выбранного набора букв:
+// «Рус» — только символы русской раскладки, «Eng» / «Все» / буквы выключены — все символы.
+// (Английская раскладка содержит все символы пула, поэтому для «Eng» переключать ничего не нужно.)
+function getSpecialPool(settings) {
+  if (settings.letters && settings.letterSet === 'ru') return SPECIAL_POOL_RU.slice();
+  return SPECIAL_POOL.slice();
+}
+
 // Возвращает массив пулов для каждой включённой категории
 function getCategoryPools(settings) {
   const pools = [];
   if (settings.letters) pools.push(getLetterPool(settings.letterSet));
-  if (settings.special) pools.push(SPECIAL_POOL.slice());
+  if (settings.special) pools.push(getSpecialPool(settings));
   if (settings.digits) pools.push(DIGITS_POOL.slice());
   if (settings.fkeys) pools.push(getFkeysPool());
   if (settings.control) pools.push(CONTROL_POOL.slice());
