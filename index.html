@@ -54,12 +54,15 @@
 
     <button id="applyBtn" class="apply">Применить</button>
 
-    <div class="theme-toggle">
-      <span>Тёмная тема</span>
-      <label class="switch">
-        <input type="checkbox" id="themeToggle" checked>
-        <span class="switch-track"></span>
-      </label>
+    <div class="settings-footer">
+      <a class="nav-link" href="key_settings.html">Вид клавиатуры →</a>
+      <div class="theme-toggle">
+        <span>Тёмная тема</span>
+        <label class="switch">
+          <input type="checkbox" id="themeToggle" checked>
+          <span class="switch-track"></span>
+        </label>
+      </div>
     </div>
   </aside>
 
@@ -77,7 +80,10 @@
           <li><b>Количество циклов</b> — сколько разных символов будет в задании (от 5 до 100).</li>
           <li><b>Количество повторений</b> — сколько раз подряд нужно нажать один и тот же символ.</li>
           <li>Если включено несколько наборов, каждый из них гарантированно появится в задании хотя бы один раз.</li>
-          <li>Верное нажатие — зелёное, ошибочное — красное, ещё не нажатая клавиша — серая.</li>
+          <li>На клавиатуре синим отмечены клавиши из выбранных наборов, серым — остальные. Подсветка меняется сразу при переключении флажков, ещё до «Применить».</li>
+          <li>Если включено «Отображение списка букв», после старта задания клавиши, которые в нём встретятся, подсвечиваются жёлтым.</li>
+          <li>Верное нажатие вспыхивает на клавиатуре зелёным, ошибочное — красным; под клавиатурой показывается время нажатия.</li>
+          <li>Ряд Esc и F1–F12 появляется при включённых «F клавишах» или «Управляющих клавишах», блок Insert/Home/PgUp/Delete/End/PgDn со стрелками — при «Управляющих клавишах».</li>
           <li>В конце появится таблица результатов: клавиша, ошибки, среднее время нажатия.</li>
         </ul>
         <p>Символы набираются в той раскладке, которая выбрана в настройках (Рус / Eng).</p>
@@ -91,18 +97,18 @@
     <div class="status" id="status">Для начала нажмите Пробел</div>
     <button id="abortBtn" class="abort" hidden>Прервать</button>
 
-    <div class="press-area">
-      <div class="key-box idle" id="keyBox">—</div>
-      <div class="press-time" id="pressTime"></div>
+    <div class="keyboard-wrap">
+      <div class="keyboard" id="keyboard" aria-hidden="true"></div>
     </div>
+    <div class="press-feedback" id="pressTime"></div>
 
     <div class="progress" id="progress"></div>
-    <div class="sequence hidden" id="sequence"></div>
     <div class="results" id="results"></div>
 
   </main>
 </div>
 
+<script src="keyboard.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

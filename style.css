@@ -35,9 +35,11 @@
   --error-bg: rgba(248, 81, 73, 0.15);
   --error-ring: rgba(248, 81, 73, 0.3);
 
+  --warning: #d29922;
+  --warning-bg: rgba(210, 153, 34, 0.12);
+
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-panel: 2px 0 5px rgba(0, 0, 0, 0.3);
-  --shadow-key: 0 4px 10px rgba(0, 0, 0, 0.4);
 
   --scrollbar-track: #161b22;
   --scrollbar-thumb: #30363d;
@@ -76,9 +78,11 @@
   --error-bg: #ffebe9;
   --error-ring: rgba(207, 34, 46, 0.2);
 
+  --warning: #9a6700;
+  --warning-bg: #fff8c5;
+
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
   --shadow-panel: 2px 0 5px rgba(0, 0, 0, 0.05);
-  --shadow-key: 0 4px 10px rgba(0, 0, 0, 0.05);
 
   --scrollbar-track: #f1f1f1;
   --scrollbar-thumb: #c1c1c1;
@@ -231,9 +235,37 @@ input[type="range"] {
   background: var(--accent);
 }
 
+/* ----- Низ панели настроек: ссылка на вид клавиатуры и переключатель темы ----- */
+/* Один margin-top:auto на весь блок — два auto поделили бы свободное место пополам */
+.settings-footer {
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.nav-link {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nav-link:hover {
+  text-decoration: underline;
+}
+
+.nav-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.settings-footer .nav-link {
+  margin-bottom: 16px;
+}
+
 /* ----- Переключатель темы ----- */
 .theme-toggle {
-  margin-top: auto;
   padding-top: 16px;
   border-top: 1px solid var(--border-soft);
   display: flex;
@@ -302,6 +334,9 @@ input[type="range"] {
   gap: 15px;
   background: var(--bg-main);
   overflow-y: auto;
+  /* Место под скроллбар зарезервировано: иначе его появление меняло бы ширину,
+     а с ней и размер клавиатуры (он считается от ширины контейнера) */
+  scrollbar-gutter: stable;
 }
 
 .jmyak > * {
@@ -371,65 +406,126 @@ input[type="range"] {
   vertical-align: middle;
 }
 
-.press-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 10px;
+/* ----- Экранная клавиатура ----- */
+/* Обёртка — контейнер для расчёта размера клавиши (единицы cqw). Это обычный
+   растянутый блок: с fit-content или align-self:center контейнер с inline-size
+   схлопнулся бы в 0 */
+.keyboard-wrap {
+  container-type: inline-size;
 }
 
-.key-box {
-  width: 140px;
-  height: 140px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 52px;
+.keyboard {
+  /* u — размер ячейки клавиши: не больше 46px и так, чтобы клавиатура влезла по ширине.
+     --kb-cols / --kb-rows (размер раскладки в клавишах) задаёт keyboard.js */
+  --u: min(46px, 100cqw / var(--kb-cols, 15));
+  --gap: calc(var(--u) * 0.1);
+  position: relative;
+  margin: 0 auto;
+  width: calc(var(--kb-cols, 15) * var(--u));
+  height: calc(var(--kb-rows, 5) * var(--u));
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, 'Courier New', monospace;
+  font-size: calc(var(--u) * 0.36);
   font-weight: 700;
-  border: 5px solid var(--border-color);
-  background: var(--bg-subtle);
+  user-select: none;
+}
+
+/* Каждая клавиша занимает w×h ячеек, видимая часть отступает на половину зазора
+   с каждой стороны — так ряды совпадают по краям при любом числе клавиш */
+.kb-key {
+  position: absolute;
+  left: calc(var(--x) * var(--u) + var(--gap) / 2);
+  top: calc(var(--y) * var(--u) + var(--gap) / 2);
+  width: calc(var(--w) * var(--u) - var(--gap));
+  height: calc(var(--h) * var(--u) - var(--gap));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-panel);
   color: var(--text-tertiary);
-  transition: all 0.15s ease;
-  box-shadow: var(--shadow-key);
+  line-height: 1;
+  transition: color 0.25s ease, border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-/* Длинные названия клавиш (Backspace, PageDown, Пробел...) */
-.key-box.long {
-  font-size: 22px;
-  padding: 0 6px;
-  text-align: center;
-  overflow-wrap: anywhere;
+/* Именованные клавиши (Tab, Shift, Esc, F1…) — мельче */
+.kb-key.kb-named {
+  font-size: calc(var(--u) * 0.24);
+  font-weight: 600;
 }
 
-.key-box.idle {
-  border-color: var(--border-color);
-  background: var(--bg-subtle);
-  color: var(--text-tertiary);
+/* Символ с Shift — в левом верхнем углу, кириллица в режиме «Все» — в правом нижнем */
+.kb-shift,
+.kb-alt {
+  position: absolute;
+  font-size: calc(var(--u) * 0.24);
 }
 
-.key-box.correct {
-  border-color: var(--success-border);
-  background: var(--success-bg);
+.kb-shift {
+  top: 3px;
+  left: 4px;
+}
+
+.kb-alt {
+  right: 4px;
+  bottom: 3px;
+}
+
+/* Засечки на F и J (А и О) */
+.kb-bump .kb-main {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+}
+
+/* Состояния: одинаковая специфичность, поэтому при нескольких классах
+   побеждает правило, стоящее ниже */
+.kb-key.kb-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.kb-key.kb-task {
+  border-color: var(--warning);
+  color: var(--warning);
+  background: var(--warning-bg);
+}
+
+/* Вспышки загораются мгновенно (transition: none), а гаснут плавно — за счёт
+   transition обычной клавиши. С плавным появлением 200 мс вспышка почти не видна */
+.kb-key.kb-correct {
+  border-color: var(--success);
   color: var(--success);
-  box-shadow: 0 0 0 4px var(--success-ring);
+  background: var(--success-bg);
+  box-shadow: 0 0 0 3px var(--success-ring);
+  transition: none;
+  z-index: 1;
 }
 
-.key-box.wrong {
+.kb-key.kb-wrong {
   border-color: var(--error);
-  background: var(--error-bg);
   color: var(--error);
-  box-shadow: 0 0 0 4px var(--error-ring);
+  background: var(--error-bg);
+  box-shadow: 0 0 0 3px var(--error-ring);
+  transition: none;
+  z-index: 1;
 }
 
-.press-time {
-  font-size: 20px;
+/* Строка под клавиатурой: время нажатия или ошибка */
+.press-feedback {
+  min-height: 26px; /* резервируем место, чтобы ниже ничего не «прыгало» */
+  text-align: center;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-secondary);
-  min-height: 28px; /* резервируем место, чтобы блок не «прыгал» при появлении времени */
-  text-align: center;
+}
+
+.press-feedback.ok {
+  color: var(--success);
+}
+
+.press-feedback.bad {
+  color: var(--error);
 }
 
 .progress {
@@ -438,45 +534,6 @@ input[type="range"] {
   color: var(--text-secondary);
   font-weight: 500;
   min-height: 24px;
-}
-
-.sequence {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-  min-height: 40px;
-  padding: 5px 0;
-}
-
-.sequence.hidden {
-  display: none;
-}
-
-.chip {
-  padding: 6px 14px;
-  border-radius: 20px;
-  background: var(--bg-subtle);
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 16px;
-  border: 2px solid transparent;
-  transition: all 0.2s;
-  min-width: 40px;
-  text-align: center;
-}
-
-.chip.current {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-ring);
-  background: var(--accent-bg);
-  color: var(--accent);
-}
-
-.chip.correct {
-  background: var(--success-border);
-  color: #ffffff;
-  border-color: var(--success);
 }
 
 .results {
@@ -520,6 +577,72 @@ input[type="range"] {
 .results .event-wrong {
   color: var(--error);
   font-weight: 600;
+}
+
+/* ==================== СТРАНИЦА «ВИД КЛАВИАТУРЫ» (key_settings.html) ==================== */
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-header h1 {
+  margin: 12px 0 4px;
+  font-size: 24px;
+}
+
+.page-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.card h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.card h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.card .radio + .radio {
+  margin-top: 8px;
+}
+
+.split-halves {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* display:grid иначе перебил бы атрибут hidden */
+.split-halves[hidden] {
+  display: none;
+}
+
+.split-halves .card {
+  margin-bottom: 0;
+}
+
+@media (max-width: 600px) {
+  .split-halves {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Scrollbar styling */

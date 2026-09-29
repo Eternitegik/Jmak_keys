@@ -24,14 +24,17 @@ let currentIndex = 0;
 let currentSymbol = '';
 let startTime = 0;
 let taskEvents = [];
-let chipElements = [];
+// Экранная клавиатура: code → [элементы клавиш] последней отрисовки и текущая вспышка
+let keyMap = new Map();
+let flash = { codes: [], cls: '', timer: null };
+const ADVANCE_DELAY_MS = 200; // пауза после верного нажатия = длительность зелёной вспышки
+const WRONG_FLASH_MS = 350;   // длительность красной вспышки
 
 // ==================== DOM ====================
 const statusEl = document.getElementById('status');
-const keyBoxEl = document.getElementById('keyBox');
+const keyboardEl = document.getElementById('keyboard');
 const pressTimeEl = document.getElementById('pressTime');
 const progressEl = document.getElementById('progress');
-const sequenceEl = document.getElementById('sequence');
 const resultsEl = document.getElementById('results');
 const jmyakPanel = document.getElementById('jmyakPanel');
 
@@ -110,7 +113,7 @@ const CONTROL_POOL = ['Shift', 'Control', 'Alt', 'Tab', 'CapsLock', 'Backspace',
 const MODIFIER_FLAGS = { Shift: 'shiftKey', Control: 'ctrlKey', Alt: 'altKey', Meta: 'metaKey' };
 // Служебные события, которые никогда не считаются нажатием (AltGr, мёртвые клавиши, IME)
 const IGNORED_KEYS = ['AltGraph', 'Dead', 'Process', 'Unidentified'];
-// Удерживаемые сейчас модификаторы: key → { time, combo }
+// Удерживаемые сейчас модификаторы: key → { time, combo, code }
 const heldModifiers = new Map();
 
 function getLetterPool(letterSet) {
@@ -128,11 +131,17 @@ function getFkeysPool() {
   return fk;
 }
 
+// Буквы набираются в русской раскладке — от этого зависят и пул спец. символов,
+// и то, на какой клавише экранной клавиатуры искать символ.
+function usesRuLayout(settings) {
+  return settings.letters && settings.letterSet === 'ru';
+}
+
 // Пул спец. символов зависит от выбранного набора букв:
 // «Рус» — только символы русской раскладки, «Eng» / «Все» / буквы выключены — все символы.
 // (Английская раскладка содержит все символы пула, поэтому для «Eng» переключать ничего не нужно.)
 function getSpecialPool(settings) {
-  if (settings.letters && settings.letterSet === 'ru') return SPECIAL_POOL_RU.slice();
+  if (usesRuLayout(settings)) return SPECIAL_POOL_RU.slice();
   return SPECIAL_POOL.slice();
 }
 
@@ -167,10 +176,61 @@ function normalizeKey(key) {
   return key.length === 1 ? key.toLowerCase() : key;
 }
 
-// Показывает текст в большом квадрате; длинные названия уменьшает, чтобы влезли
-function setKeyBox(text, cls) {
-  keyBoxEl.textContent = text;
-  keyBoxEl.className = 'key-box' + (cls ? ' ' + cls : '') + (text.length > 2 ? ' long' : '');
+// Строка под клавиатурой: время нажатия ('ok') или ошибка ('bad')
+function setFeedback(text, kind) {
+  pressTimeEl.textContent = text;
+  pressTimeEl.className = 'press-feedback' + (kind ? ' ' + kind : '');
+}
+
+// Имя нажатой клавиши для строки под клавиатурой
+function feedbackKey(key) {
+  const name = displayKey(key);
+  return name.length === 1 ? name.toUpperCase() : name;
+}
+
+// ==================== ЭКРАННАЯ КЛАВИАТУРА ====================
+// Подписи на клавишах: кириллица, латиница или обе («Все»)
+function labelMode(settings) {
+  return settings.letters ? settings.letterSet : 'en';
+}
+
+// Физические клавиши (KeyboardEvent.code), которыми набирается символ при этих настройках
+function symbolCodes(sym, settings) {
+  return JmakKeyboard.codesFor(sym, usesRuLayout(settings) ? 'ru' : 'en');
+}
+
+// Вспышка одна на всю клавиатуру: новая гасит предыдущую
+function clearFlash() {
+  if (flash.timer) clearTimeout(flash.timer);
+  JmakKeyboard.toggle(keyMap, flash.codes, flash.cls, false);
+  flash = { codes: [], cls: '', timer: null };
+}
+
+function flashKeys(codes, cls, ms) {
+  clearFlash();
+  JmakKeyboard.toggle(keyMap, codes, cls, true);
+  flash = { codes, cls, timer: setTimeout(clearFlash, ms) };
+}
+
+// Перерисовывает клавиатуру по настройкам: набор блоков, подписи, синие клавиши из наборов
+function renderKeyboard(settings) {
+  clearFlash();
+  const layout = JmakKeyboard.buildLayout({
+    type: 'standard',
+    fRow: settings.fkeys || settings.control, // Esc и F1–F12
+    nav: settings.control                     // Insert…PageDown и стрелки
+  });
+  keyMap = JmakKeyboard.render(keyboardEl, layout, labelMode(settings));
+  const active = getCategoryPools(settings).flat().flatMap(sym => symbolCodes(sym, settings));
+  JmakKeyboard.toggle(keyMap, active, 'kb-active', true);
+}
+
+// В покое клавиатура — предпросмотр текущих флажков (ещё до «Применить»),
+// во время отсчёта — применённые настройки. Во время задания не трогаем:
+// там жёлтые клавиши задания и вспышки, а задание идёт по снимку runSettings.
+function refreshKeyboard() {
+  if (state === 'TASK') return;
+  renderKeyboard(state === 'COUNTDOWN' ? appliedSettings : readSettingsFromDom());
 }
 
 // ==================== НАСТРОЙКИ ====================
@@ -186,14 +246,6 @@ function validateCheckboxes() {
   }
   letterGroup.style.opacity = cbLetters.checked ? '1' : '0.5';
   letterGroup.style.pointerEvents = cbLetters.checked ? 'auto' : 'none';
-}
-
-function updateSequenceVisibility() {
-  if (appliedSettings.showSequence) {
-    sequenceEl.classList.remove('hidden');
-  } else {
-    sequenceEl.classList.add('hidden');
-  }
 }
 
 function readSettingsFromDom() {
@@ -273,15 +325,15 @@ function saveSettings(settings) {
 }
 
 // ==================== ОБРАБОТЧИКИ НАСТРОЕК ====================
-cbLetters.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
-cbSpecial.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
-cbDigits.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
-cbFkeys.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
-cbControl.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); });
+// Флажки наборов и выбор букв сразу меняют предпросмотр на клавиатуре
+// (validateCheckboxes может заново включить «Набор букв», поэтому она первая)
+[cbLetters, cbSpecial, cbDigits, cbFkeys, cbControl].forEach(cb => {
+  cb.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); refreshKeyboard(); });
+});
 cbShowSeq.addEventListener('change', markSettingsChanged);
 
 document.querySelectorAll('input[name="letterSet"]').forEach(r => {
-  r.addEventListener('change', markSettingsChanged);
+  r.addEventListener('change', () => { markSettingsChanged(); refreshKeyboard(); });
 });
 
 cyclesSlider.addEventListener('input', () => {
@@ -299,7 +351,8 @@ applyBtn.addEventListener('click', () => {
   if (state === 'TASK') return;
   appliedSettings = readSettingsFromDom();
   saveSettings(appliedSettings);
-  updateSequenceVisibility();
+  // «Применить» доступно и во время отсчёта — тогда клавиатура покажет новые настройки
+  refreshKeyboard();
   clearSettingsChanged();
   // Снимаем фокус, чтобы Пробел/Enter запускали задание, а не нажимали кнопку повторно
   applyBtn.blur();
@@ -374,13 +427,15 @@ function clearTimers() {
 function beginCountdown() {
   clearTimers();
   resultsEl.innerHTML = '';
-  sequenceEl.innerHTML = '';
   progressEl.textContent = '';
-  pressTimeEl.textContent = '';
-  setKeyBox('—', 'idle');
+  setFeedback('');
 
   state = 'COUNTDOWN';
   abortBtn.hidden = false;
+  // На время отсчёта клавиатура показывает применённые настройки, а не черновик флажков
+  renderKeyboard(appliedSettings);
+  // После предыдущего задания панель прокручена к таблице результатов
+  jmyakPanel.scrollTop = 0;
   countdownValue = COUNTDOWN_SECONDS;
   statusEl.textContent = countdownValue;
 
@@ -424,7 +479,12 @@ function startTask() {
   taskEvents = cyclesSymbols.map(sym => ({ target: sym, events: [] }));
 
   currentIndex = 0;
-  renderSequence();
+  renderKeyboard(runSettings);
+  if (runSettings.showSequence) {
+    // Клавиши, которые встретятся в задании, — жёлтым (текущую отдельно не выделяем)
+    const taskCodes = cyclesSymbols.flatMap(sym => symbolCodes(sym, runSettings));
+    JmakKeyboard.toggle(keyMap, taskCodes, 'kb-task', true);
+  }
   nextSymbol();
 }
 
@@ -436,26 +496,10 @@ function abortTask() {
   state = 'IDLE';
   applyBtn.disabled = false;
   abortBtn.hidden = true;
-  sequenceEl.innerHTML = '';
-  chipElements = [];
   progressEl.textContent = '';
-  pressTimeEl.textContent = '';
-  setKeyBox('—', 'idle');
+  setFeedback('');
+  refreshKeyboard(); // снимает жёлтый и вспышки, возвращает предпросмотр
   updateStartPrompt();
-}
-
-function renderSequence() {
-  sequenceEl.innerHTML = '';
-  chipElements = [];
-  if (!runSettings.showSequence) return;
-  sequence.forEach((sym, i) => {
-    const chip = document.createElement('span');
-    chip.className = 'chip';
-    chip.textContent = displayKey(sym);
-    if (i === currentIndex) chip.classList.add('current');
-    sequenceEl.appendChild(chip);
-    chipElements.push(chip);
-  });
 }
 
 function nextSymbol() {
@@ -469,15 +513,7 @@ function nextSymbol() {
   currentSymbol = sequence[currentIndex];
   startTime = Date.now();
   statusEl.innerHTML = `Жми&nbsp;<span class="target-key">${escapeHtml(displayKey(currentSymbol))}</span>`;
-  setKeyBox(displayKey(currentSymbol));
-  pressTimeEl.textContent = '';
-
-  if (runSettings.showSequence) {
-    chipElements.forEach((chip, i) => {
-      chip.classList.remove('current');
-      if (i === currentIndex) chip.classList.add('current');
-    });
-  }
+  // Строка под клавиатурой не очищается: результат прошлого нажатия виден до следующего
 
   const cycle = Math.floor(currentIndex / runSettings.repeats) + 1;
   const repeat = (currentIndex % runSettings.repeats) + 1;
@@ -491,9 +527,9 @@ function finishTask() {
   applyBtn.disabled = false;
   abortBtn.hidden = true;
   statusEl.textContent = 'Задание выполнено!';
-  setKeyBox('—', 'idle');
-  pressTimeEl.textContent = '';
+  setFeedback('');
   progressEl.textContent = '';
+  refreshKeyboard(); // снимает жёлтый и вспышки, возвращает предпросмотр
   renderResults();
   currentStartKey = Math.random() < 0.5 ? ' ' : 'Enter';
   requestAnimationFrame(() => {
@@ -539,36 +575,40 @@ function dropStaleModifiers(e) {
   }
 }
 
-// Регистрирует нажатие клавиши (верное или ошибочное) в текущем цикле
-function handlePress(key, time) {
+// Регистрирует нажатие клавиши (верное или ошибочное) в текущем цикле.
+// code — KeyboardEvent.code нажатой физической клавиши (у синтетических событий пустой).
+function handlePress(key, time, code = '') {
   if (state !== 'TASK' || inputLocked) return;
   const cycle = taskEvents[Math.floor(currentIndex / runSettings.repeats)];
   if (!cycle) return;
 
   if (normalizeKey(key) === normalizeKey(currentSymbol)) {
     inputLocked = true;
-    setKeyBox(displayKey(currentSymbol), 'correct');
-    pressTimeEl.textContent = `${time} мс`;
+    // Подсвечиваем клавишу, которую реально нажали: в режиме «Все» знак может набираться
+    // не той клавишей, где он стоит в US-раскладке. Если её нет на клавиатуре
+    // (цифровой блок) или код неизвестен — клавишу, на которой стоит символ.
+    const codes = keyMap.has(code) ? [code] : symbolCodes(currentSymbol, runSettings);
+    flashKeys(codes, 'kb-correct', ADVANCE_DELAY_MS);
+    setFeedback(`${time} мс`, 'ok');
     cycle.events.push({ key, time, isCorrect: true });
 
-    if (runSettings.showSequence && chipElements[currentIndex]) {
-      chipElements[currentIndex].classList.remove('current');
-      chipElements[currentIndex].classList.add('correct');
-    }
-
     currentIndex++;
-    nextTimeout = setTimeout(nextSymbol, 200);
+    nextTimeout = setTimeout(nextSymbol, ADVANCE_DELAY_MS);
   } else {
-    setKeyBox(displayKey(key), 'wrong');
-    pressTimeEl.textContent = `${time} мс (ошибка)`;
+    // Клавишу, которой нет на клавиатуре (например, цифрового блока), не видно,
+    // но ошибка всё равно показывается строкой под клавиатурой
+    flashKeys(code ? [code] : symbolCodes(key, runSettings), 'kb-wrong', WRONG_FLASH_MS);
+    setFeedback(`✗ ${feedbackKey(key)} · ${time} мс`, 'bad');
     cycle.events.push({ key, time, isCorrect: false });
   }
 }
 
 window.addEventListener('keydown', (e) => {
   if (state === 'IDLE' || state === 'FINISHED') {
+    // На элементах управления клавиши работают как обычно (в том числе Enter на ссылке
+    // «Вид клавиатуры» — переход, а не старт задания)
     const tag = e.target.tagName;
-    if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'TEXTAREA') return;
+    if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'TEXTAREA' || tag === 'A') return;
     if (e.key === currentStartKey) {
       e.preventDefault();
       if (!e.repeat) beginCountdown();
@@ -597,12 +637,12 @@ window.addEventListener('keydown', (e) => {
     if (e.key in MODIFIER_FLAGS) {
       // Решение о модификаторе принимается при отпускании (keyup)
       if (!inputLocked) {
-        heldModifiers.set(e.key, { time: Date.now() - startTime, combo: alreadyHeld });
+        heldModifiers.set(e.key, { time: Date.now() - startTime, combo: alreadyHeld, code: e.code });
       }
       return;
     }
 
-    handlePress(e.key, Date.now() - startTime);
+    handlePress(e.key, Date.now() - startTime, e.code);
   }
 });
 
@@ -612,7 +652,7 @@ window.addEventListener('keyup', (e) => {
   if (!held) return;
   heldModifiers.delete(e.key);
   // Одиночное нажатие модификатора засчитываем, комбинацию — пропускаем
-  if (!held.combo) handlePress(e.key, held.time);
+  if (!held.combo) handlePress(e.key, held.time, held.code);
 });
 
 // Потеря фокуса окна (Alt+Tab, меню «Пуск» по Win): keyup мы можем не получить.
@@ -621,7 +661,7 @@ window.addEventListener('keyup', (e) => {
 window.addEventListener('blur', () => {
   if (state === 'TASK') {
     const meta = heldModifiers.get('Meta');
-    if (meta && !meta.combo) handlePress('Meta', meta.time);
+    if (meta && !meta.combo) handlePress('Meta', meta.time, meta.code);
   }
   heldModifiers.clear();
 });
@@ -638,4 +678,4 @@ updateSettingsDisplay();
 appliedSettings = readSettingsFromDom();
 runSettings = appliedSettings;
 updateStartPrompt();
-updateSequenceVisibility();
+refreshKeyboard();

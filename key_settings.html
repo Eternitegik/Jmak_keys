@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // Та же тема, что и на странице тренажёра (переключатель — там). Применяем до
+  // отрисовки, чтобы не было мигания тёмной темой перед светлой.
+  (function () {
+    try {
+      if (localStorage.getItem('jmak-theme') === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } catch (e) {}
+  })();
+</script>
+<title>Жмяк — вид клавиатуры</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="page">
+  <header class="page-header">
+    <a class="nav-link" href="index.html">← К тренажёру</a>
+    <h1>Вид клавиатуры</h1>
+    <p class="page-note">Макет: настройки пока не сохраняются и не влияют на тренажёр.</p>
+  </header>
+
+  <section class="card">
+    <h2>Тип клавиатуры</h2>
+    <label class="radio"><input type="radio" name="kbType" value="standard" checked><span>Стандартная QWERTY</span></label>
+    <label class="radio"><input type="radio" name="kbType" value="split"><span>Сплит клавиатура</span></label>
+  </section>
+
+  <div class="split-halves" id="splitBlock" hidden>
+    <section class="card">
+      <h3>Левая половина</h3>
+      <div class="slider">
+        <div class="slider-head"><span>Количество клавиш по горизонтали</span><b id="leftColsVal">6</b></div>
+        <input type="range" id="leftCols" min="5" max="10" step="1" value="6" data-label="leftColsVal">
+      </div>
+      <div class="slider">
+        <div class="slider-head"><span>Количество клавиш по вертикали (без дополнительных)</span><b id="leftRowsVal">3</b></div>
+        <input type="range" id="leftRows" min="0" max="5" step="1" value="3" data-label="leftRowsVal">
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Правая половина</h3>
+      <div class="slider">
+        <div class="slider-head"><span>Количество клавиш по горизонтали</span><b id="rightColsVal">6</b></div>
+        <input type="range" id="rightCols" min="5" max="10" step="1" value="6" data-label="rightColsVal">
+      </div>
+      <div class="slider">
+        <div class="slider-head"><span>Количество клавиш по вертикали (без дополнительных)</span><b id="rightRowsVal">3</b></div>
+        <input type="range" id="rightRows" min="0" max="5" step="1" value="3" data-label="rightRowsVal">
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="key_settings.js"></script>
+</body>
+</html>
