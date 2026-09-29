@@ -221,8 +221,11 @@ input[type="range"] {
   background: var(--error-bg);
 }
 
+/* Скрытая кнопка не убирается из раскладки, а становится невидимой: место под ней
+   зарезервировано, поэтому клавиатура не сдвигается при старте и остановке задания */
 .abort[hidden] {
-  display: none;
+  display: block;
+  visibility: hidden;
 }
 
 /* Красная обводка, когда настройки изменены, но не применены */
@@ -386,7 +389,7 @@ input[type="range"] {
   text-align: center;
   padding: 20px 10px;
   color: var(--text-primary);
-  min-height: 80px;
+  min-height: 90px; /* по высоте «Жми X» с крупной буквой: блок не растёт при старте задания и не сдвигает клавиатуру */
   display: flex;
   align-items: center;
   justify-content: center;

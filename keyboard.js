@@ -93,6 +93,14 @@ const JmakKeyboard = (function () {
     return code ? [code] : [];
   }
 
+  // Подпись именованной клавиши по значению KeyboardEvent.key — та же, что на экранной
+  // клавиатуре: Control → Ctrl, Meta → Win, CapsLock → Caps, PageDown → PgDn, ArrowUp → ↑.
+  // Для символов, пробела (на нём подписи нет) и неизвестных клавиш — null.
+  function keyLabel(key) {
+    const code = KEY_TO_CODES.has(key) ? KEY_TO_CODES.get(key)[0] : key;
+    return NAMED.get(code) || null;
+  }
+
   // ---------- Стандартная клавиатура (ANSI) ----------
   // Ширина клавиш, отличных от 1u
   const STD_WIDTHS = {
@@ -212,5 +220,5 @@ const JmakKeyboard = (function () {
     });
   }
 
-  return { buildLayout, render, codesFor, toggle };
+  return { buildLayout, render, codesFor, keyLabel, toggle };
 })();

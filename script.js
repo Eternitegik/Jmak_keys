@@ -166,9 +166,12 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-// Читаемое имя клавиши (пробел иначе показывался бы пустой строкой)
+// Читаемое имя клавиши для подсказки, строки под клавиатурой и таблицы результатов —
+// как на экранной клавиатуре (Ctrl, Win, Caps, PgDn, ↑…). У пробела на клавише
+// подписи нет, поэтому «Пробел».
 function displayKey(key) {
-  return key === ' ' ? 'Пробел' : key;
+  if (key === ' ') return 'Пробел';
+  return JmakKeyboard.keyLabel(key) || key;
 }
 
 // Буквы сравниваем без учёта регистра (CapsLock / Shift не должны давать ошибку)
@@ -567,7 +570,12 @@ function renderResults() {
 }
 
 // ==================== ОБРАБОТКА КЛАВИШ ====================
-abortBtn.addEventListener('click', abortTask);
+abortBtn.addEventListener('click', () => {
+  abortTask();
+  // Скрытая кнопка остаётся на своём месте невидимой — снимаем с неё фокус,
+  // чтобы Пробел/Enter запускали новое задание, а не нажимали её повторно
+  abortBtn.blur();
+});
 
 function dropStaleModifiers(e) {
   for (const key of heldModifiers.keys()) {
