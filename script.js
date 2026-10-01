@@ -8,6 +8,7 @@ let appliedSettings = {
   fkeys: false,
   control: false,
   showSequence: false,
+  hands: false,
   cycles: 5,
   repeats: 1
 };
@@ -31,7 +32,8 @@ const ADVANCE_DELAY_MS = 200; // пауза после верного нажат
 const WRONG_FLASH_MS = 350;   // длительность красной вспышки
 
 // ==================== DOM ====================
-const statusEl = document.getElementById('status');
+const statusTextEl = document.getElementById('statusText');
+const statusKeyEl = document.getElementById('statusKey');
 const keyboardEl = document.getElementById('keyboard');
 const pressTimeEl = document.getElementById('pressTime');
 const progressEl = document.getElementById('progress');
@@ -45,6 +47,7 @@ const cbDigits = document.getElementById('cbDigits');
 const cbFkeys = document.getElementById('cbFkeys');
 const cbControl = document.getElementById('cbControl');
 const cbShowSeq = document.getElementById('cbShowSeq');
+const cbHands = document.getElementById('cbHands');
 const cyclesSlider = document.getElementById('cycles');
 const cyclesVal = document.getElementById('cyclesVal');
 const repeatsSlider = document.getElementById('repeats');
@@ -179,6 +182,24 @@ function normalizeKey(key) {
   return key.length === 1 ? key.toLowerCase() : key;
 }
 
+// Блок статуса: первая строка — текст, вторая — символ задания ('target')
+// или цифра отсчёта ('countdown'). Пустая вторая строка сохраняет высоту блока,
+// поэтому клавиатура под ним не сдвигается.
+function setStatus(text, key = '', kind = '') {
+  statusTextEl.textContent = text;
+  statusKeyEl.textContent = key;
+  statusKeyEl.className = 'status-key' + (kind ? ' ' + kind : '');
+}
+
+// В режиме «Все» буква может быть кириллической или латинской, а «с»/«c», «а»/«a»
+// выглядят одинаково — подсказываем раскладку. У цифр, знаков и клавиш подсказки нет.
+function layoutHint(sym, settings) {
+  if (!settings.letters || settings.letterSet !== 'all') return '';
+  if (/^[а-яё]$/i.test(sym)) return ' (Рус)';
+  if (/^[a-z]$/i.test(sym)) return ' (Eng)';
+  return '';
+}
+
 // Строка под клавиатурой: время нажатия ('ok') или ошибка ('bad')
 function setFeedback(text, kind) {
   pressTimeEl.textContent = text;
@@ -224,6 +245,7 @@ function renderKeyboard(settings) {
     nav: settings.control                     // Insert…PageDown и стрелки
   });
   keyMap = JmakKeyboard.render(keyboardEl, layout, labelMode(settings));
+  keyboardEl.classList.toggle('kb-hands', !!settings.hands); // черты зон левой/правой руки
   const active = getCategoryPools(settings).flat().flatMap(sym => symbolCodes(sym, settings));
   JmakKeyboard.toggle(keyMap, active, 'kb-active', true);
 }
@@ -260,6 +282,7 @@ function readSettingsFromDom() {
     fkeys: cbFkeys.checked,
     control: cbControl.checked,
     showSequence: cbShowSeq.checked,
+    hands: cbHands.checked,
     cycles: parseInt(cyclesSlider.value, 10),
     repeats: parseInt(repeatsSlider.value, 10)
   };
@@ -275,6 +298,7 @@ function applySettingsToDom(settings) {
   cbFkeys.checked = settings.fkeys;
   cbControl.checked = settings.control;
   cbShowSeq.checked = settings.showSequence;
+  cbHands.checked = settings.hands;
   cyclesSlider.value = String(settings.cycles);
   repeatsSlider.value = String(settings.repeats);
 }
@@ -314,6 +338,7 @@ function loadStoredSettings() {
     fkeys: bool(data.fkeys, false),
     control: bool(data.control, false),
     showSequence: bool(data.showSequence, false),
+    hands: bool(data.hands, false),
     cycles: clampInt(data.cycles, 5, 100, 5),
     repeats: clampInt(data.repeats, 1, 10, 1)
   };
@@ -334,6 +359,8 @@ function saveSettings(settings) {
   cb.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); refreshKeyboard(); });
 });
 cbShowSeq.addEventListener('change', markSettingsChanged);
+// Зоны рук — тоже сразу в предпросмотре
+cbHands.addEventListener('change', () => { markSettingsChanged(); refreshKeyboard(); });
 
 document.querySelectorAll('input[name="letterSet"]').forEach(r => {
   r.addEventListener('change', () => { markSettingsChanged(); refreshKeyboard(); });
@@ -418,7 +445,7 @@ function getStartKeyName(key) {
 }
 
 function updateStartPrompt() {
-  statusEl.textContent = `Для начала нажмите ${getStartKeyName(currentStartKey)}`;
+  setStatus(`Для начала нажмите ${getStartKeyName(currentStartKey)}`);
 }
 
 function clearTimers() {
@@ -440,12 +467,13 @@ function beginCountdown() {
   // После предыдущего задания панель прокручена к таблице результатов
   jmyakPanel.scrollTop = 0;
   countdownValue = COUNTDOWN_SECONDS;
-  statusEl.textContent = countdownValue;
+  // Цифра отсчёта — во второй строке, там, где появится первый символ
+  setStatus('Приготовьтесь', String(countdownValue), 'countdown');
 
   countdownInterval = setInterval(() => {
     countdownValue--;
     if (countdownValue > 0) {
-      statusEl.textContent = countdownValue;
+      setStatus('Приготовьтесь', String(countdownValue), 'countdown');
     } else {
       clearInterval(countdownInterval);
       countdownInterval = null;
@@ -515,7 +543,7 @@ function nextSymbol() {
   inputLocked = false;
   currentSymbol = sequence[currentIndex];
   startTime = Date.now();
-  statusEl.innerHTML = `Жми&nbsp;<span class="target-key">${escapeHtml(displayKey(currentSymbol))}</span>`;
+  setStatus('Жми' + layoutHint(currentSymbol, runSettings), displayKey(currentSymbol), 'target');
   // Строка под клавиатурой не очищается: результат прошлого нажатия виден до следующего
 
   const cycle = Math.floor(currentIndex / runSettings.repeats) + 1;
@@ -529,7 +557,7 @@ function finishTask() {
   heldModifiers.clear();
   applyBtn.disabled = false;
   abortBtn.hidden = true;
-  statusEl.textContent = 'Задание выполнено!';
+  setStatus('Задание выполнено!');
   setFeedback('');
   progressEl.textContent = '';
   refreshKeyboard(); // снимает жёлтый и вспышки, возвращает предпросмотр

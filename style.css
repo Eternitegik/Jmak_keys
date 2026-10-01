@@ -38,6 +38,9 @@
   --warning: #d29922;
   --warning-bg: rgba(210, 153, 34, 0.12);
 
+  --hand-left: #a371f7;
+  --hand-right: #39c5bb;
+
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-panel: 2px 0 5px rgba(0, 0, 0, 0.3);
 
@@ -80,6 +83,9 @@
 
   --warning: #9a6700;
   --warning-bg: #fff8c5;
+
+  --hand-left: #8250df;
+  --hand-right: #0f8a80;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
   --shadow-panel: 2px 0 5px rgba(0, 0, 0, 0.05);
@@ -383,30 +389,47 @@ input[type="range"] {
 }
 
 /* ----- Статус, клавиша, прогресс и т.д. ----- */
+/* Две строки: текст («Для начала нажмите…», «Жми (Eng)») и место под символ.
+   У обеих строк явная высота строки, вторая держит высоту и пустой — блок
+   одинаковый во всех состояниях и не сдвигает клавиатуру */
 .status {
-  font-size: 26px;
   font-weight: 700;
   text-align: center;
-  padding: 20px 10px;
+  padding: 16px 10px;
   color: var(--text-primary);
-  min-height: 90px; /* по высоте «Жми X» с крупной буквой: блок не растёт при старте задания и не сдвигает клавиатуру */
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   background: var(--bg-panel);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
 }
 
-/* Целевая клавиша в подсказке «Жми …» — крупнее, цветом и подчёркиванием */
-.target-key {
-  font-size: 1.4em;
+.status-text {
+  font-size: 26px;
+  line-height: 1.3;
+}
+
+.status-key {
+  font-size: 44px;
+  line-height: 1.2;
+  min-height: 1.2em;
+}
+
+/* Символ, который нужно нажать, — цветом и подчёркиванием */
+.status-key.target {
   color: var(--accent);
   text-decoration: underline;
   text-decoration-thickness: 3px;
-  text-underline-offset: 4px;
-  vertical-align: middle;
+  text-underline-offset: 6px;
+}
+
+/* Цифра отсчёта на месте будущего символа — приглушённая, чтобы не спутать с заданием */
+.status-key.countdown {
+  color: var(--text-secondary);
 }
 
 /* ----- Экранная клавиатура ----- */
@@ -479,6 +502,27 @@ input[type="range"] {
   text-decoration: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 0.2em;
+}
+
+/* Зоны рук («Отображать для двух рук»): короткая черта у нижнего края клавиши.
+   Ширина задана в u, а не в процентах — на широких клавишах черта не растягивается.
+   Черта ниже подписи в правом нижнем углу (кириллица в режиме «Все») и подальше
+   от засечки на А/О */
+.keyboard.kb-hands .kb-hand-left::after,
+.keyboard.kb-hands .kb-hand-right::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--u) * 0.03);
+  width: calc(var(--u) * 0.36);
+  height: max(2px, calc(var(--u) * 0.06));
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: var(--hand-left);
+}
+
+.keyboard.kb-hands .kb-hand-right::after {
+  background: var(--hand-right);
 }
 
 /* Состояния: одинаковая специфичность, поэтому при нескольких классах

@@ -159,6 +159,26 @@ const JmakKeyboard = (function () {
     return buildStandardLayout(!!c.fRow, !!c.nav);
   }
 
+  // ---------- Руки ----------
+  // Какой рукой нажимается клавиша при слепой печати (ЙЦУКЕН и QWERTY — одни и те же
+  // физические клавиши). Левый указательный — 4 5 К Е А П М И, правый — 6 7 Н Г Р О Т Ь.
+  // Esc и F1–F4 — левая рука; всё остальное, кроме пробела, — правая.
+  const LEFT_HAND = new Set([
+    'Escape', 'F1', 'F2', 'F3', 'F4',
+    'Backquote', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5',
+    'Tab', 'KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT',
+    'CapsLock', 'KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG',
+    'ShiftLeft', 'KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB',
+    'ControlLeft', 'MetaLeft', 'AltLeft'
+  ]);
+
+  // 'left' | 'right'; пробел (большие пальцы любой руки) — null.
+  // В сплит-раскладке руку будет задавать половина клавиатуры.
+  function handOf(code) {
+    if (code === 'Space') return null;
+    return LEFT_HAND.has(code) ? 'left' : 'right';
+  }
+
   // ---------- Отрисовка ----------
   const isLetter = ch => ch.toLowerCase() !== ch.toUpperCase();
 
@@ -204,6 +224,9 @@ const JmakKeyboard = (function () {
       if (labels.alt) el.appendChild(span('kb-alt', labels.alt));
       // Засечки для слепой печати (F/J — они же А/О)
       if (k.code === 'KeyF' || k.code === 'KeyJ') el.classList.add('kb-bump');
+      // Зона руки; видна, только когда у контейнера есть класс kb-hands
+      const hand = handOf(k.code);
+      if (hand) el.classList.add('kb-hand-' + hand);
 
       container.appendChild(el);
       if (!map.has(k.code)) map.set(k.code, []);
