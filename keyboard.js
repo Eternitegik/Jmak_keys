@@ -159,25 +159,38 @@ const JmakKeyboard = (function () {
     return buildStandardLayout(!!c.fRow, !!c.nav);
   }
 
-  // ---------- Руки ----------
-  // Какой рукой нажимается клавиша при слепой печати (ЙЦУКЕН и QWERTY — одни и те же
+  // ---------- Руки и пальцы ----------
+  // Каким пальцем нажимается клавиша при слепой печати (ЙЦУКЕН и QWERTY — одни и те же
   // физические клавиши). Левый указательный — 4 5 К Е А П М И, правый — 6 7 Н Г Р О Т Ь.
-  // Esc и F1–F4 — левая рука; всё остальное, кроме пробела, — правая.
-  const LEFT_HAND = new Set([
-    'Escape', 'F1', 'F2', 'F3', 'F4',
-    'Backquote', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5',
-    'Tab', 'KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT',
-    'CapsLock', 'KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG',
-    'ShiftLeft', 'KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB',
-    'ControlLeft', 'MetaLeft', 'AltLeft'
-  ]);
+  // Для F-ряда строгой схемы нет — палец по ближайшему столбцу; блок навигации —
+  // указательный на Ins/Del/←, средний на Home/End/↑↓, безымянный на PgUp/PgDn/→.
+  const FINGER_ZONES = {
+    'left-pinky': ['Escape', 'Backquote', 'Digit1', 'Tab', 'KeyQ', 'CapsLock', 'KeyA',
+      'ShiftLeft', 'KeyZ', 'ControlLeft', 'MetaLeft'],
+    'left-ring': ['F1', 'Digit2', 'KeyW', 'KeyS', 'KeyX'],
+    'left-middle': ['F2', 'Digit3', 'KeyE', 'KeyD', 'KeyC'],
+    'left-index': ['F3', 'F4', 'Digit4', 'Digit5', 'KeyR', 'KeyT', 'KeyF', 'KeyG', 'KeyV', 'KeyB'],
+    'left-thumb': ['AltLeft'],
+    'thumb': ['Space'], // большие пальцы любой руки
+    'right-thumb': ['AltRight'],
+    'right-index': ['F5', 'F6', 'Digit6', 'Digit7', 'KeyY', 'KeyU', 'KeyH', 'KeyJ', 'KeyN', 'KeyM',
+      'Insert', 'Delete', 'ArrowLeft'],
+    'right-middle': ['F7', 'Digit8', 'KeyI', 'KeyK', 'Comma', 'Home', 'End', 'ArrowUp', 'ArrowDown'],
+    'right-ring': ['F8', 'Digit9', 'KeyO', 'KeyL', 'Period', 'PageUp', 'PageDown', 'ArrowRight'],
+    'right-pinky': ['F9', 'F10', 'F11', 'F12', 'Digit0', 'Minus', 'Equal', 'Backspace',
+      'KeyP', 'BracketLeft', 'BracketRight', 'Backslash', 'Semicolon', 'Quote', 'Enter',
+      'Slash', 'ShiftRight', 'MetaRight', 'ContextMenu', 'ControlRight']
+  };
 
-  // 'left' | 'right'; пробел (большие пальцы любой руки) — null.
-  // В сплит-раскладке руку будет задавать половина клавиатуры.
-  function handOf(code) {
-    if (code === 'Space') return null;
-    return LEFT_HAND.has(code) ? 'left' : 'right';
-  }
+  // code → { hand: 'left' | 'right' | null, finger: 'left-index' | … | 'thumb' }.
+  // Большие пальцы раскрашиваются одним цветом, но Alt относится к своей руке
+  // (для режима «половины»), а у пробела руки нет.
+  const ZONES = new Map();
+  Object.keys(FINGER_ZONES).forEach(zone => {
+    const hand = zone.startsWith('left') ? 'left' : zone.startsWith('right') ? 'right' : null;
+    const finger = zone.endsWith('thumb') ? 'thumb' : zone;
+    FINGER_ZONES[zone].forEach(code => ZONES.set(code, { hand, finger }));
+  });
 
   // ---------- Отрисовка ----------
   const isLetter = ch => ch.toLowerCase() !== ch.toUpperCase();
@@ -224,9 +237,14 @@ const JmakKeyboard = (function () {
       if (labels.alt) el.appendChild(span('kb-alt', labels.alt));
       // Засечки для слепой печати (F/J — они же А/О)
       if (k.code === 'KeyF' || k.code === 'KeyJ') el.classList.add('kb-bump');
-      // Зона руки; видна, только когда у контейнера есть класс kb-hands
-      const hand = handOf(k.code);
-      if (hand) el.classList.add('kb-hand-' + hand);
+      // Зоны руки и пальца (kb-hand-left, kb-hand-left-index, kb-hand-thumb…). Видны,
+      // только когда у контейнера есть класс режима kb-hands-halves / kb-hands-fingers.
+      // В сплит-раскладке руку будет задавать половина клавиатуры.
+      const zone = ZONES.get(k.code);
+      if (zone) {
+        if (zone.hand) el.classList.add('kb-hand-' + zone.hand);
+        el.classList.add('kb-hand-' + zone.finger);
+      }
 
       container.appendChild(el);
       if (!map.has(k.code)) map.set(k.code, []);

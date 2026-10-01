@@ -41,6 +41,16 @@
   --hand-left: #a371f7;
   --hand-right: #39c5bb;
 
+  --finger-left-pinky: #f778ba;
+  --finger-left-ring: #f0883e;
+  --finger-left-middle: #e3b341;
+  --finger-left-index: #56d364;
+  --finger-right-index: #39c5bb;
+  --finger-right-middle: #58a6ff;
+  --finger-right-ring: #a371f7;
+  --finger-right-pinky: #db61a2;
+  --finger-thumb: #8b949e;
+
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-panel: 2px 0 5px rgba(0, 0, 0, 0.3);
 
@@ -86,6 +96,16 @@
 
   --hand-left: #8250df;
   --hand-right: #0f8a80;
+
+  --finger-left-pinky: #bf3989;
+  --finger-left-ring: #bc4c00;
+  --finger-left-middle: #9a6700;
+  --finger-left-index: #1a7f37;
+  --finger-right-index: #0f8a80;
+  --finger-right-middle: #0969da;
+  --finger-right-ring: #8250df;
+  --finger-right-pinky: #a0369a;
+  --finger-thumb: #6e7781;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
   --shadow-panel: 2px 0 5px rgba(0, 0, 0, 0.05);
@@ -147,14 +167,41 @@ body {
   cursor: pointer;
 }
 
-.radio-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 8px 0 8px 26px;
-  transition: opacity 0.2s;
+/* ----- Поле с заголовком и выпадающим списком (набор букв) ----- */
+.field {
+  margin: 12px 0 16px;
 }
 
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.select {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text-primary);
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.select:hover {
+  border-color: var(--text-tertiary);
+}
+
+.select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Радиокнопки (страница «Вид клавиатуры») */
 .radio {
   display: flex;
   align-items: center;
@@ -504,12 +551,28 @@ input[type="range"] {
   text-underline-offset: 0.2em;
 }
 
-/* Зоны рук («Отображать для двух рук»): короткая черта у нижнего края клавиши.
-   Ширина задана в u, а не в процентах — на широких клавишах черта не растягивается.
+/* Зоны рук («Отображение для рук»): короткая черта у нижнего края клавиши.
+   Режим на контейнере (kb-hands-halves / kb-hands-fingers) задаёт клавише цвет
+   --hand-color по её зоне, а черту рисует одно общее правило ниже. При «Откл»
+   класса режима нет — черт нет */
+.keyboard.kb-hands-halves .kb-hand-left  { --hand-color: var(--hand-left); }
+.keyboard.kb-hands-halves .kb-hand-right { --hand-color: var(--hand-right); }
+
+.keyboard.kb-hands-fingers .kb-hand-left-pinky   { --hand-color: var(--finger-left-pinky); }
+.keyboard.kb-hands-fingers .kb-hand-left-ring    { --hand-color: var(--finger-left-ring); }
+.keyboard.kb-hands-fingers .kb-hand-left-middle  { --hand-color: var(--finger-left-middle); }
+.keyboard.kb-hands-fingers .kb-hand-left-index   { --hand-color: var(--finger-left-index); }
+.keyboard.kb-hands-fingers .kb-hand-right-index  { --hand-color: var(--finger-right-index); }
+.keyboard.kb-hands-fingers .kb-hand-right-middle { --hand-color: var(--finger-right-middle); }
+.keyboard.kb-hands-fingers .kb-hand-right-ring   { --hand-color: var(--finger-right-ring); }
+.keyboard.kb-hands-fingers .kb-hand-right-pinky  { --hand-color: var(--finger-right-pinky); }
+.keyboard.kb-hands-fingers .kb-hand-thumb        { --hand-color: var(--finger-thumb); }
+
+/* Ширина задана в u, а не в процентах — на широких клавишах черта не растягивается.
    Черта ниже подписи в правом нижнем углу (кириллица в режиме «Все») и подальше
-   от засечки на А/О */
-.keyboard.kb-hands .kb-hand-left::after,
-.keyboard.kb-hands .kb-hand-right::after {
+   от засечки на А/О. У клавиши без цвета (пробел в режиме половин) черта прозрачная */
+.keyboard.kb-hands-halves .kb-key::after,
+.keyboard.kb-hands-fingers .kb-key::after {
   content: '';
   position: absolute;
   left: 50%;
@@ -518,11 +581,7 @@ input[type="range"] {
   height: max(2px, calc(var(--u) * 0.06));
   transform: translateX(-50%);
   border-radius: 2px;
-  background: var(--hand-left);
-}
-
-.keyboard.kb-hands .kb-hand-right::after {
-  background: var(--hand-right);
+  background: var(--hand-color, transparent);
 }
 
 /* Состояния: одинаковая специфичность, поэтому при нескольких классах

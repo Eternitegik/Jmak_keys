@@ -8,7 +8,7 @@ let appliedSettings = {
   fkeys: false,
   control: false,
   showSequence: false,
-  hands: false,
+  hands: 'off', // зоны рук на клавиатуре: 'off' | 'halves' | 'fingers'
   cycles: 5,
   repeats: 1
 };
@@ -40,14 +40,13 @@ const progressEl = document.getElementById('progress');
 const resultsEl = document.getElementById('results');
 const jmyakPanel = document.getElementById('jmyakPanel');
 
-const cbLetters = document.getElementById('cbLetters');
-const letterGroup = document.getElementById('letterGroup');
+const letterSetSelect = document.getElementById('letterSet');
 const cbSpecial = document.getElementById('cbSpecial');
 const cbDigits = document.getElementById('cbDigits');
 const cbFkeys = document.getElementById('cbFkeys');
 const cbControl = document.getElementById('cbControl');
 const cbShowSeq = document.getElementById('cbShowSeq');
-const cbHands = document.getElementById('cbHands');
+const handsSelect = document.getElementById('handsMode');
 const cyclesSlider = document.getElementById('cycles');
 const cyclesVal = document.getElementById('cyclesVal');
 const repeatsSlider = document.getElementById('repeats');
@@ -141,7 +140,7 @@ function usesRuLayout(settings) {
 }
 
 // Пул спец. символов зависит от выбранного набора букв:
-// «Рус» — только символы русской раскладки, «Eng» / «Все» / буквы выключены — все символы.
+// «Рус» — только символы русской раскладки, «Eng» / «Все» / «Откл» — все символы.
 // (Английская раскладка содержит все символы пула, поэтому для «Eng» переключать ничего не нужно.)
 function getSpecialPool(settings) {
   if (usesRuLayout(settings)) return SPECIAL_POOL_RU.slice();
@@ -245,7 +244,9 @@ function renderKeyboard(settings) {
     nav: settings.control                     // Insert…PageDown и стрелки
   });
   keyMap = JmakKeyboard.render(keyboardEl, layout, labelMode(settings));
-  keyboardEl.classList.toggle('kb-hands', !!settings.hands); // черты зон левой/правой руки
+  // Черты зон: по половинам (рука) или по пальцам; при «Откл» классов режима нет
+  keyboardEl.classList.toggle('kb-hands-halves', settings.hands === 'halves');
+  keyboardEl.classList.toggle('kb-hands-fingers', settings.hands === 'fingers');
   const active = getCategoryPools(settings).flat().flatMap(sym => symbolCodes(sym, settings));
   JmakKeyboard.toggle(keyMap, active, 'kb-active', true);
 }
@@ -264,25 +265,29 @@ function updateSettingsDisplay() {
   repeatsVal.textContent = repeatsSlider.value;
 }
 
+// Хотя бы один набор должен быть включён: если буквы «Откл» и ни один флажок
+// наборов не стоит, возвращаем «Рус»
 function validateCheckboxes() {
-  const anyChecked = cbLetters.checked || cbSpecial.checked || cbDigits.checked || cbFkeys.checked || cbControl.checked;
-  if (!anyChecked) {
-    cbLetters.checked = true;
+  const anyChecked = cbSpecial.checked || cbDigits.checked || cbFkeys.checked || cbControl.checked;
+  if (letterSetSelect.value === 'off' && !anyChecked) {
+    letterSetSelect.value = 'ru';
   }
-  letterGroup.style.opacity = cbLetters.checked ? '1' : '0.5';
-  letterGroup.style.pointerEvents = cbLetters.checked ? 'auto' : 'none';
 }
 
+// Список «Набор букв» хранится в настройках как два поля: letters (выключен ли
+// набор — пункт «Откл») и letterSet ('ru' | 'en' | 'all'). При «Откл» letterSet
+// не используется.
 function readSettingsFromDom() {
+  const letterChoice = letterSetSelect.value;
   return {
-    letters: cbLetters.checked,
-    letterSet: document.querySelector('input[name="letterSet"]:checked').value,
+    letters: letterChoice !== 'off',
+    letterSet: letterChoice === 'off' ? 'ru' : letterChoice,
     special: cbSpecial.checked,
     digits: cbDigits.checked,
     fkeys: cbFkeys.checked,
     control: cbControl.checked,
     showSequence: cbShowSeq.checked,
-    hands: cbHands.checked,
+    hands: handsSelect.value,
     cycles: parseInt(cyclesSlider.value, 10),
     repeats: parseInt(repeatsSlider.value, 10)
   };
@@ -290,15 +295,13 @@ function readSettingsFromDom() {
 
 // Переносит объект настроек в элементы формы — обратная операция к readSettingsFromDom.
 function applySettingsToDom(settings) {
-  cbLetters.checked = settings.letters;
-  const letterSetInput = document.querySelector(`input[name="letterSet"][value="${settings.letterSet}"]`);
-  if (letterSetInput) letterSetInput.checked = true;
+  letterSetSelect.value = settings.letters ? settings.letterSet : 'off';
   cbSpecial.checked = settings.special;
   cbDigits.checked = settings.digits;
   cbFkeys.checked = settings.fkeys;
   cbControl.checked = settings.control;
   cbShowSeq.checked = settings.showSequence;
-  cbHands.checked = settings.hands;
+  handsSelect.value = settings.hands;
   cyclesSlider.value = String(settings.cycles);
   repeatsSlider.value = String(settings.repeats);
 }
@@ -338,7 +341,9 @@ function loadStoredSettings() {
     fkeys: bool(data.fkeys, false),
     control: bool(data.control, false),
     showSequence: bool(data.showSequence, false),
-    hands: bool(data.hands, false),
+    // Раньше это был флажок «Отображать для двух рук»: true — то же, что «половины»
+    hands: data.hands === true ? 'halves'
+      : ['off', 'halves', 'fingers'].includes(data.hands) ? data.hands : 'off',
     cycles: clampInt(data.cycles, 5, 100, 5),
     repeats: clampInt(data.repeats, 1, 10, 1)
   };
@@ -354,17 +359,13 @@ function saveSettings(settings) {
 
 // ==================== ОБРАБОТЧИКИ НАСТРОЕК ====================
 // Флажки наборов и выбор букв сразу меняют предпросмотр на клавиатуре
-// (validateCheckboxes может заново включить «Набор букв», поэтому она первая)
-[cbLetters, cbSpecial, cbDigits, cbFkeys, cbControl].forEach(cb => {
-  cb.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); refreshKeyboard(); });
+// (validateCheckboxes может вернуть набор букв «Рус», поэтому она первая)
+[letterSetSelect, cbSpecial, cbDigits, cbFkeys, cbControl].forEach(el => {
+  el.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); refreshKeyboard(); });
 });
 cbShowSeq.addEventListener('change', markSettingsChanged);
 // Зоны рук — тоже сразу в предпросмотре
-cbHands.addEventListener('change', () => { markSettingsChanged(); refreshKeyboard(); });
-
-document.querySelectorAll('input[name="letterSet"]').forEach(r => {
-  r.addEventListener('change', () => { markSettingsChanged(); refreshKeyboard(); });
-});
+handsSelect.addEventListener('change', () => { markSettingsChanged(); refreshKeyboard(); });
 
 cyclesSlider.addEventListener('input', () => {
   cyclesVal.textContent = cyclesSlider.value;
@@ -644,7 +645,7 @@ window.addEventListener('keydown', (e) => {
     // На элементах управления клавиши работают как обычно (в том числе Enter на ссылке
     // «Вид клавиатуры» — переход, а не старт задания)
     const tag = e.target.tagName;
-    if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'TEXTAREA' || tag === 'A') return;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'TEXTAREA' || tag === 'A') return;
     if (e.key === currentStartKey) {
       e.preventDefault();
       if (!e.repeat) beginCountdown();

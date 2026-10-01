@@ -25,15 +25,14 @@
   <aside class="panel settings">
     <h2 class="panel-title">Настройки</h2>
 
-    <label class="check">
-      <input type="checkbox" id="cbLetters" checked>
-      <span>Набор букв</span>
-    </label>
-
-    <div class="radio-group" id="letterGroup">
-      <label class="radio"><input type="radio" name="letterSet" value="ru" checked><span>Рус</span></label>
-      <label class="radio"><input type="radio" name="letterSet" value="en"><span>Eng</span></label>
-      <label class="radio"><input type="radio" name="letterSet" value="all"><span>Все</span></label>
+    <div class="field">
+      <label class="field-label" for="letterSet">Набор букв</label>
+      <select class="select" id="letterSet">
+        <option value="ru" selected>Рус</option>
+        <option value="en">Eng</option>
+        <option value="all">Все</option>
+        <option value="off">Откл</option>
+      </select>
     </div>
 
     <label class="check"><input type="checkbox" id="cbSpecial"><span>Спец. символы</span></label>
@@ -41,7 +40,14 @@
     <label class="check"><input type="checkbox" id="cbFkeys"><span>F клавиши</span></label>
     <label class="check"><input type="checkbox" id="cbControl"><span>Управляющие клавиши</span></label>
     <label class="check"><input type="checkbox" id="cbShowSeq"><span>Отображение списка букв</span></label>
-    <label class="check"><input type="checkbox" id="cbHands"><span>Отображать для двух рук</span></label>
+    <div class="field">
+      <label class="field-label" for="handsMode">Отображение для рук</label>
+      <select class="select" id="handsMode">
+        <option value="off" selected>Откл</option>
+        <option value="halves">Разделение на половины</option>
+        <option value="fingers">Для каждого пальца</option>
+      </select>
+    </div>
 
     <div class="slider">
       <div class="slider-head"><span>Количество циклов</span><b id="cyclesVal">5</b></div>
@@ -85,12 +91,12 @@
           <li>На клавиатуре синим отмечены клавиши из выбранных наборов, серым — остальные. Подсветка меняется сразу при переключении флажков, ещё до «Применить».</li>
           <li>Если включено «Отображение списка букв», после старта задания клавиши, которые в нём встретятся, подсвечиваются жёлтым.</li>
           <li>Верное нажатие вспыхивает на клавиатуре зелёным, ошибочное — красным; под клавиатурой показывается время нажатия.</li>
-          <li><b>«Отображать для двух рук»</b> — черта внизу клавиши показывает, какой рукой её нажимать при слепой печати: фиолетовая — левой, бирюзовая — правой. Пробел нажимается большим пальцем любой руки.</li>
+          <li><b>«Отображение для рук»</b> — черта внизу клавиши подсказывает, чем её нажимать при слепой печати. «Разделение на половины»: фиолетовая — левой рукой, бирюзовая — правой. «Для каждого пальца»: у каждого пальца свой цвет, от розового (левый мизинец) до малинового (правый мизинец); серая — большие пальцы (пробел, Alt).</li>
           <li>Ряд Esc и F1–F12 появляется при включённых «F клавишах» или «Управляющих клавишах», блок Insert/Home/PgUp/Delete/End/PgDn со стрелками — при «Управляющих клавишах».</li>
           <li>В конце появится таблица результатов: клавиша, ошибки, среднее время нажатия.</li>
         </ul>
         <p>Символы набираются в той раскладке, которая выбрана в настройках (Рус / Eng).</p>
-        <p><b>Спец. символы зависят от набора букв:</b> при «Рус» выпадают только символы, которые набираются в русской раскладке (<code>! " % : ; ? * ( ) _ + - = \ / , .</code>); при «Eng» и «Все», а также если «Набор букв» выключен, — все спец. символы (для тех, что не набираются в русской раскладке, переключитесь на английскую). Регистр букв не учитывается.</p>
+        <p><b>Спец. символы зависят от набора букв:</b> при «Рус» выпадают только символы, которые набираются в русской раскладке (<code>! " % : ; ? * ( ) _ + - = \ / , .</code>); при «Eng» и «Все», а также если набор букв «Откл», — все спец. символы (для тех, что не набираются в русской раскладке, переключитесь на английскую). Регистр букв не учитывается.</p>
         <p><b>Комбинации клавиш</b> (например, Alt+Shift для смены раскладки, Shift+1 для «!») не засчитываются. Одиночное нажатие Alt, Ctrl, Shift или Win засчитывается в момент отпускания клавиши; время реакции при этом считается от её нажатия.</p>
         <p>Задание можно остановить кнопкой «Прервать».</p>
         <p>Настройки сохраняются в браузере при нажатии «Применить» и подставляются автоматически при следующем открытии страницы.</p>
