@@ -23,7 +23,10 @@
   <header class="page-header">
     <a class="nav-link" href="index.html">← К тренажёру</a>
     <h1>Вид клавиатуры</h1>
-    <p class="page-note">Макет: настройки пока не сохраняются и не влияют на тренажёр.</p>
+    <p class="page-note">
+      Настройки сохраняются сразу и применяются в тренажёре.
+      <span class="save-note" id="saveNote" aria-live="polite"></span>
+    </p>
   </header>
 
   <section class="card">
@@ -32,33 +35,135 @@
     <label class="radio"><input type="radio" name="kbType" value="split"><span>Сплит клавиатура</span></label>
   </section>
 
-  <div class="split-halves" id="splitBlock" hidden>
+  <div id="splitBlock" hidden>
     <section class="card">
-      <h3>Левая половина</h3>
-      <div class="slider">
-        <div class="slider-head"><span>Количество клавиш по горизонтали</span><b id="leftColsVal">6</b></div>
-        <input type="range" id="leftCols" min="5" max="10" step="1" value="6" data-label="leftColsVal">
+      <h2>Форма сплита</h2>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label" for="preset">Пресет</label>
+          <select class="select" id="preset">
+            <option value="">Своя форма</option>
+            <option value="corne">Corne (3×6 + 3)</option>
+            <option value="sweep">Ferris Sweep (3×5 + 2)</option>
+            <option value="iris">Iris (4×6 + 4)</option>
+            <option value="lily58">Lily58 / Sofle (4×6 + 5)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label" for="stagger">Смещение столбцов</label>
+          <select class="select" id="stagger">
+            <option value="none">Ровно (ортолинейная)</option>
+            <option value="moderate">Умеренное</option>
+            <option value="strong">Сильное</option>
+          </select>
+        </div>
       </div>
-      <div class="slider">
-        <div class="slider-head"><span>Количество клавиш по вертикали (без дополнительных)</span><b id="leftRowsVal">3</b></div>
-        <input type="range" id="leftRows" min="0" max="5" step="1" value="3" data-label="leftRowsVal">
-      </div>
+      <label class="check"><input type="checkbox" id="sameHalves" checked><span>Половины одинаковые</span></label>
     </section>
 
-    <section class="card">
-      <h3>Правая половина</h3>
-      <div class="slider">
-        <div class="slider-head"><span>Количество клавиш по горизонтали</span><b id="rightColsVal">6</b></div>
-        <input type="range" id="rightCols" min="5" max="10" step="1" value="6" data-label="rightColsVal">
-      </div>
-      <div class="slider">
-        <div class="slider-head"><span>Количество клавиш по вертикали (без дополнительных)</span><b id="rightRowsVal">3</b></div>
-        <input type="range" id="rightRows" min="0" max="5" step="1" value="3" data-label="rightRowsVal">
-      </div>
-    </section>
+    <div class="split-halves">
+      <section class="card" id="leftCard">
+        <h3>Левая половина</h3>
+        <div class="slider">
+          <div class="slider-head"><span>Столбцы (6 — с внешним, 7 — ещё и с внутренним)</span><b id="leftColsVal">6</b></div>
+          <input type="range" id="leftCols" min="5" max="7" step="1" value="6" data-label="leftColsVal">
+        </div>
+        <div class="slider">
+          <div class="slider-head"><span>Ряды (4 — с рядом цифр)</span><b id="leftRowsVal">3</b></div>
+          <input type="range" id="leftRows" min="3" max="4" step="1" value="3" data-label="leftRowsVal">
+        </div>
+        <div class="slider">
+          <div class="slider-head"><span>Клавиши под большой палец</span><b id="leftThumbsVal">3</b></div>
+          <input type="range" id="leftThumbs" min="0" max="6" step="1" value="3" data-label="leftThumbsVal">
+        </div>
+      </section>
+
+      <section class="card" id="rightCard">
+        <h3>Правая половина</h3>
+        <div class="slider">
+          <div class="slider-head"><span>Столбцы (6 — с внешним, 7 — ещё и с внутренним)</span><b id="rightColsVal">6</b></div>
+          <input type="range" id="rightCols" min="5" max="7" step="1" value="6" data-label="rightColsVal">
+        </div>
+        <div class="slider">
+          <div class="slider-head"><span>Ряды (4 — с рядом цифр)</span><b id="rightRowsVal">3</b></div>
+          <input type="range" id="rightRows" min="3" max="4" step="1" value="3" data-label="rightRowsVal">
+        </div>
+        <div class="slider">
+          <div class="slider-head"><span>Клавиши под большой палец</span><b id="rightThumbsVal">3</b></div>
+          <input type="range" id="rightThumbs" min="0" max="6" step="1" value="3" data-label="rightThumbsVal">
+        </div>
+      </section>
+    </div>
   </div>
+
+  <section class="card">
+    <h2 id="previewTitle">Предпросмотр</h2>
+    <div class="layer-tabs" id="layerTabs" hidden></div>
+    <label class="check"><input type="checkbox" id="showFingers"><span>Показать пальцы</span></label>
+    <div class="keyboard-wrap">
+      <div class="keyboard" id="preview" aria-hidden="true"></div>
+    </div>
+
+    <!-- Запись своей раскладки (только для сплита) -->
+    <div id="layoutTools" hidden>
+      <label class="check">
+        <input type="checkbox" id="separateSymbols">
+        <span>Цифры и спецсимволы на разных клавишах (Shift + цифра не даёт символ)</span>
+      </label>
+      <div class="btn-row">
+        <button type="button" class="btn btn-primary" id="learnBtn">Записать слой</button>
+        <button type="button" class="btn" id="addLayerBtn">+ Слой</button>
+        <button type="button" class="btn" id="renameLayerBtn">Переименовать слой</button>
+        <button type="button" class="btn" id="removeLayerBtn">Удалить слой</button>
+        <button type="button" class="btn" id="resetLayoutBtn">Сбросить раскладку</button>
+      </div>
+      <p class="page-note preview-note">
+        «Записать слой» по очереди подсвечивает клавиши схемы — нажимайте их на своей
+        клавиатуре, и тренажёр запомнит, что где находится. Чтобы перезаписать одну клавишу,
+        кликните по ней на схеме. Незаписанные клавиши основного слоя остаются как на обычной
+        QWERTY. Пунктирные клавиши ничем не заняты (на любом слое), бледные клавиши слоя —
+        такие же, как на основном. С флажком «Цифры и спецсимволы на разных клавишах» символ
+        вроде «)» ищется только там, где он записан, — запишите свой слой символов.
+      </p>
+    </div>
+
+    <div class="wizard" id="wizard" hidden>
+      <div class="wizard-title" id="wizardTitle"></div>
+      <div class="wizard-text" id="wizardText"></div>
+      <div class="wizard-last" id="wizardLast" aria-live="polite"></div>
+      <div class="btn-row">
+        <button type="button" class="btn" id="wzBack">← Назад</button>
+        <button type="button" class="btn" id="wzSame">Как на основном</button>
+        <button type="button" class="btn" id="wzEmpty">Пусто</button>
+        <select class="select wizard-select" id="wzLayer" aria-label="Клавиша включает слой"></select>
+        <button type="button" class="btn btn-primary" id="wzDone">Готово</button>
+      </div>
+    </div>
+
+    <p class="page-note preview-note" id="splitNote" hidden>
+      На основном слое в углах клавиш мелко видно, что на них на слоях 1 и 2. В тренажёре,
+      если символ лежит на другом слое, подсказка назовёт слой («Жми (Символы)»),
+      клавиатура сама его покажет, а клавиша слоя будет обведена — дайте слоям понятные
+      названия.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>Резервная копия</h2>
+    <p class="page-note">
+      Сохраните настройки в файл, чтобы перенести их в другой браузер или на другой компьютер:
+      вид клавиатуры, записанная раскладка со слоями, настройки тренажёра и тема.
+    </p>
+    <div class="btn-row">
+      <button type="button" class="btn btn-primary" id="exportBtn">Сохранить в файл</button>
+      <button type="button" class="btn" id="importBtn">Загрузить из файла</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+    <p class="page-note backup-status" id="backupStatus" aria-live="polite"></p>
+  </section>
 </div>
 
+<script src="keyboard.js"></script>
 <script src="key_settings.js"></script>
 </body>
 </html>

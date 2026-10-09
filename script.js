@@ -7,8 +7,11 @@ let appliedSettings = {
   digits: false,
   fkeys: false,
   control: false,
+  fullSet: false, // «Весь набор»: все символы выбранных наборов вместо «Количества циклов»
   showSequence: false,
+  blind: false,  // «Скрыть подписи клавиш»
   hands: 'off', // зоны рук на клавиатуре: 'off' | 'halves' | 'fingers'
+  hint: 'never', // «Подсказка, где нажимать»: 'never' | 'delay' (через 2 с) | 'instant'
   cycles: 5,
   repeats: 1
 };
@@ -25,16 +28,30 @@ let currentIndex = 0;
 let currentSymbol = '';
 let startTime = 0;
 let taskEvents = [];
-// Экранная клавиатура: code → [элементы клавиш] последней отрисовки и текущая вспышка
+// Экранная клавиатура: вид (стандартная или сплит, страница «Вид клавиатуры»),
+// модель (форма + раскладка, см. keyboard.js), позиция → [элементы клавиш]
+// последней отрисовки и текущая вспышка
+let kbConfig = JmakKeyboard.loadConfig();
+let kbModel = null;
+let shownLayer = 0; // показанный слой сплита (0 — основной)
 let keyMap = new Map();
-let flash = { codes: [], cls: '', timer: null };
+let flash = { positions: [], cls: '', timer: null };
 const ADVANCE_DELAY_MS = 200; // пауза после верного нажатия = длительность зелёной вспышки
 const WRONG_FLASH_MS = 350;   // длительность красной вспышки
+// «Подсказка, где нажимать»: целевая клавиша подсвечивается сразу или если пользователь
+// не нажал её за HINT_DELAY_MS
+const HINT_DELAY_MS = 2000;
+let hintTimeout = null;
+let hintPositions = [];
+// «Повторить ошибки»: символы следующего задания (null — обычное задание по настройкам)
+let pendingSymbols = null;
+const RETRY_ROUNDS = 3; // сколько раз каждая клавиша с ошибкой встречается при повторе
 
 // ==================== DOM ====================
 const statusTextEl = document.getElementById('statusText');
 const statusKeyEl = document.getElementById('statusKey');
 const keyboardEl = document.getElementById('keyboard');
+const layerTabsEl = document.getElementById('layerTabs');
 const pressTimeEl = document.getElementById('pressTime');
 const progressEl = document.getElementById('progress');
 const resultsEl = document.getElementById('results');
@@ -45,8 +62,11 @@ const cbSpecial = document.getElementById('cbSpecial');
 const cbDigits = document.getElementById('cbDigits');
 const cbFkeys = document.getElementById('cbFkeys');
 const cbControl = document.getElementById('cbControl');
+const cbFullSet = document.getElementById('cbFullSet');
 const cbShowSeq = document.getElementById('cbShowSeq');
+const cbBlind = document.getElementById('cbBlind');
 const handsSelect = document.getElementById('handsMode');
+const hintSelect = document.getElementById('hintMode');
 const cyclesSlider = document.getElementById('cycles');
 const cyclesVal = document.getElementById('cyclesVal');
 const repeatsSlider = document.getElementById('repeats');
@@ -192,11 +212,21 @@ function setStatus(text, key = '', kind = '') {
 
 // В режиме «Все» буква может быть кириллической или латинской, а «с»/«c», «а»/«a»
 // выглядят одинаково — подсказываем раскладку. У цифр, знаков и клавиш подсказки нет.
-function layoutHint(sym, settings) {
+function layoutTag(sym, settings) {
   if (!settings.letters || settings.letterSet !== 'all') return '';
-  if (/^[а-яё]$/i.test(sym)) return ' (Рус)';
-  if (/^[a-z]$/i.test(sym)) return ' (Eng)';
+  if (/^[а-яё]$/i.test(sym)) return 'Рус';
+  if (/^[a-z]$/i.test(sym)) return 'Eng';
   return '';
+}
+
+// Подсказки к символу в скобках: раскладка («Все») и слой сплита, на котором он
+// набирается (если не на основном) — « (Eng · Символы)» или ''
+function symbolHints(sym, settings) {
+  const tags = [layoutTag(sym, settings)];
+  const loc = kbModel ? kbModel.locate(sym, symbolLayout(settings)) : null;
+  if (loc && loc.layer > 0) tags.push(kbModel.keymap.layers[loc.layer].name);
+  const text = tags.filter(Boolean).join(' · ');
+  return text ? ` (${text})` : '';
 }
 
 // Строка под клавиатурой: время нажатия ('ok') или ошибка ('bad')
@@ -217,38 +247,127 @@ function labelMode(settings) {
   return settings.letters ? settings.letterSet : 'en';
 }
 
-// Физические клавиши (KeyboardEvent.code), которыми набирается символ при этих настройках
-function symbolCodes(sym, settings) {
-  return JmakKeyboard.codesFor(sym, usesRuLayout(settings) ? 'ru' : 'en');
+// В какой раскладке искать символ на клавишах: для " ; : ? / , . это разные клавиши
+function symbolLayout(settings) {
+  return usesRuLayout(settings) ? 'ru' : 'en';
+}
+
+// Позиции клавиш на показанном слое, которыми набирается символ при этих настройках
+function symbolPositions(sym, settings) {
+  return kbModel.positionsOn(shownLayer, sym, symbolLayout(settings));
 }
 
 // Вспышка одна на всю клавиатуру: новая гасит предыдущую
 function clearFlash() {
   if (flash.timer) clearTimeout(flash.timer);
-  JmakKeyboard.toggle(keyMap, flash.codes, flash.cls, false);
-  flash = { codes: [], cls: '', timer: null };
+  JmakKeyboard.toggle(keyMap, flash.positions, flash.cls, false);
+  flash = { positions: [], cls: '', timer: null };
 }
 
-function flashKeys(codes, cls, ms) {
+function flashKeys(positions, cls, ms) {
   clearFlash();
-  JmakKeyboard.toggle(keyMap, codes, cls, true);
-  flash = { codes, cls, timer: setTimeout(clearFlash, ms) };
+  JmakKeyboard.toggle(keyMap, positions, cls, true);
+  flash = { positions, cls, timer: setTimeout(clearFlash, ms) };
 }
 
 // Перерисовывает клавиатуру по настройкам: набор блоков, подписи, синие клавиши из наборов
 function renderKeyboard(settings) {
   clearFlash();
-  const layout = JmakKeyboard.buildLayout({
-    type: 'standard',
-    fRow: settings.fkeys || settings.control, // Esc и F1–F12
-    nav: settings.control                     // Insert…PageDown и стрелки
+  // Сплит — форма со страницы «Вид клавиатуры». У стандартной клавиатуры ряд F-клавиш
+  // и блок навигации появляются по наборам; на сплите их нет (там они на слоях)
+  const layout = kbConfig.type === 'split'
+    ? JmakKeyboard.buildLayout({ type: 'split', split: kbConfig.split })
+    : JmakKeyboard.buildLayout({
+      type: 'standard',
+      fRow: settings.fkeys || settings.control, // Esc и F1–F12
+      nav: settings.control                     // Insert…PageDown и стрелки
+    });
+  // У стандартной клавиатуры каждая клавиша отправляет свой код, слой один. У сплита —
+  // раскладка со слоями, записанная на странице «Вид клавиатуры» (незаписанные клавиши
+  // основного слоя — как на обычной QWERTY)
+  const keymap = kbConfig.type === 'split'
+    ? JmakKeyboard.buildKeymap(layout, kbConfig.keymap)
+    : JmakKeyboard.defaultKeymap(layout);
+  // На сплите цифры и спецсимволы могут быть на разных клавишах (флажок на странице
+  // «Вид клавиатуры») — тогда «)» ищется только на своей клавише, а не как «0» + Shift
+  kbModel = JmakKeyboard.createModel(layout, keymap, {
+    separateSymbols: kbConfig.type === 'split' && kbConfig.separateSymbols
   });
-  keyMap = JmakKeyboard.render(keyboardEl, layout, labelMode(settings));
+  if (shownLayer >= kbModel.layerCount) shownLayer = 0;
+  keyMap = JmakKeyboard.render(keyboardEl, kbModel, labelMode(settings), { layer: shownLayer });
   // Черты зон: по половинам (рука) или по пальцам; при «Откл» классов режима нет
   keyboardEl.classList.toggle('kb-hands-halves', settings.hands === 'halves');
   keyboardEl.classList.toggle('kb-hands-fingers', settings.hands === 'fingers');
-  const active = getCategoryPools(settings).flat().flatMap(sym => symbolCodes(sym, settings));
+  // «Скрыть подписи клавиш» — пустые кейкапы
+  keyboardEl.classList.toggle('kb-blind', !!settings.blind);
+  // Синие — клавиши показанного слоя, которые входят в наборы
+  const active = getCategoryPools(settings).flat().flatMap(sym => symbolPositions(sym, settings));
   JmakKeyboard.toggle(keyMap, active, 'kb-active', true);
+  // На другом слое обводим клавишу основного слоя, которая его включает
+  if (shownLayer > 0) JmakKeyboard.toggle(keyMap, kbModel.layerSwitches(shownLayer), 'kb-layer-target', true);
+  renderLayerTabs();
+}
+
+// Вкладки слоёв над клавиатурой (если у сплита записаны слои). В покое по ним можно
+// листать слои; во время задания слой переключается сам — на тот, где символ задания
+function renderLayerTabs() {
+  const count = kbModel.layerCount;
+  layerTabsEl.hidden = count < 2;
+  layerTabsEl.textContent = '';
+  if (count < 2) return;
+  kbModel.keymap.layers.forEach((layer, i) => {
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = 'layer-tab' + (i === shownLayer ? ' active' : '');
+    tab.textContent = layer.name;
+    tab.disabled = state === 'COUNTDOWN' || state === 'TASK';
+    tab.addEventListener('click', () => {
+      shownLayer = i;
+      refreshKeyboard();
+      // Фокус с вкладки снимаем, чтобы Пробел/Enter запускали задание
+      tab.blur();
+    });
+    layerTabsEl.appendChild(tab);
+  });
+}
+
+// Жёлтые клавиши задания («Отображение списка букв») — на показанном слое
+function highlightTaskKeys() {
+  if (!runSettings.showSequence) return;
+  const taskPositions = taskEvents.flatMap(t => symbolPositions(t.target, runSettings));
+  JmakKeyboard.toggle(keyMap, taskPositions, 'kb-task', true);
+}
+
+// «Подсказка, где нажимать»: подсветить клавишу текущего символа (и черту её пальца)
+function showHint() {
+  hintTimeout = null;
+  if (state !== 'TASK') return;
+  hintPositions = symbolPositions(currentSymbol, runSettings);
+  JmakKeyboard.toggle(keyMap, hintPositions, 'kb-hint', true);
+}
+
+function clearHint() {
+  if (hintTimeout) { clearTimeout(hintTimeout); hintTimeout = null; }
+  JmakKeyboard.toggle(keyMap, hintPositions, 'kb-hint', false);
+  hintPositions = [];
+}
+
+// Подсказка для нового символа: сразу или через HINT_DELAY_MS, если ещё не нажат
+function scheduleHint() {
+  clearHint();
+  if (runSettings.hint === 'instant') showHint();
+  else if (runSettings.hint === 'delay') hintTimeout = setTimeout(showHint, HINT_DELAY_MS);
+}
+
+// В задании показываем слой, на котором набирается символ, — с его жёлтыми клавишами
+// и обведённой клавишей слоя
+function showLayerFor(sym) {
+  const loc = kbModel.locate(sym, symbolLayout(runSettings));
+  const layer = loc ? loc.layer : 0;
+  if (layer === shownLayer) return;
+  shownLayer = layer;
+  renderKeyboard(runSettings);
+  highlightTaskKeys();
 }
 
 // В покое клавиатура — предпросмотр текущих флажков (ещё до «Применить»),
@@ -259,10 +378,41 @@ function refreshKeyboard() {
   renderKeyboard(state === 'COUNTDOWN' ? appliedSettings : readSettingsFromDom());
 }
 
+// Вид клавиатуры меняется на другой странице. Ссылка «← К тренажёру» перезагружает эту
+// страницу, но кнопка «Назад» может показать её из кэша без перезагрузки, а настройки
+// могут поменять и в соседней вкладке — тогда перечитываем их и перерисовываем
+function reloadKeyboardConfig() {
+  kbConfig = JmakKeyboard.loadConfig();
+  if (state === 'TASK') return; // задание доигрывается со старой клавиатурой
+  shownLayer = 0;
+  refreshKeyboard();
+}
+window.addEventListener('pageshow', e => {
+  if (!e.persisted) return;
+  // На странице «Вид клавиатуры» могли загрузить настройки из файла — вместе с ними
+  // поменялись настройки тренажёра и тема; тогда проще перезагрузить страницу целиком
+  const themeChanged = (getStoredTheme() === 'light') !==
+    (document.documentElement.getAttribute('data-theme') === 'light');
+  if (readStoredSettingsRaw() !== lastSettingsRaw || themeChanged) location.reload();
+  else reloadKeyboardConfig();
+});
+window.addEventListener('storage', e => { if (e.key === JmakKeyboard.CONFIG_KEY) reloadKeyboardConfig(); });
+
 // ==================== НАСТРОЙКИ ====================
 function updateSettingsDisplay() {
-  cyclesVal.textContent = cyclesSlider.value;
+  updateCyclesControl();
   repeatsVal.textContent = repeatsSlider.value;
+}
+
+// При «Весь набор» количество циклов не настраивается: ползунок неактивен, а вместо
+// его значения показано, сколько символов войдёт в задание при текущих флажках
+function updateCyclesControl() {
+  const full = cbFullSet.checked;
+  cyclesSlider.disabled = full;
+  cyclesSlider.closest('.slider').classList.toggle('disabled', full);
+  cyclesVal.textContent = full
+    ? String(getCategoryPools(readSettingsFromDom()).flat().length)
+    : cyclesSlider.value;
 }
 
 // Хотя бы один набор должен быть включён: если буквы «Откл» и ни один флажок
@@ -286,8 +436,11 @@ function readSettingsFromDom() {
     digits: cbDigits.checked,
     fkeys: cbFkeys.checked,
     control: cbControl.checked,
+    fullSet: cbFullSet.checked,
     showSequence: cbShowSeq.checked,
+    blind: cbBlind.checked,
     hands: handsSelect.value,
+    hint: hintSelect.value,
     cycles: parseInt(cyclesSlider.value, 10),
     repeats: parseInt(repeatsSlider.value, 10)
   };
@@ -300,25 +453,36 @@ function applySettingsToDom(settings) {
   cbDigits.checked = settings.digits;
   cbFkeys.checked = settings.fkeys;
   cbControl.checked = settings.control;
+  cbFullSet.checked = settings.fullSet;
   cbShowSeq.checked = settings.showSequence;
+  cbBlind.checked = settings.blind;
   handsSelect.value = settings.hands;
+  hintSelect.value = settings.hint;
   cyclesSlider.value = String(settings.cycles);
   repeatsSlider.value = String(settings.repeats);
 }
 
 // ==================== СОХРАНЕНИЕ НАСТРОЕК (localStorage) ====================
 const SETTINGS_STORAGE_KEY = 'jmak-settings';
+// Сохранённые настройки в том виде, с которым работает страница: если в хранилище
+// окажется другое (загрузили из файла на странице «Вид клавиатуры»), страницу нужно
+// перезагрузить — см. обработчик pageshow
+let lastSettingsRaw = null;
+
+function readStoredSettingsRaw() {
+  try {
+    return localStorage.getItem(SETTINGS_STORAGE_KEY);
+  } catch (e) {
+    return null; // localStorage недоступен (приватный режим и т.п.)
+  }
+}
 
 // Читает настройки из localStorage и проверяет каждое поле — на случай
 // повреждённых данных или старой версии формата. Некорректные/отсутствующие
 // поля заменяются значением по умолчанию, а не роняют загрузку целиком.
 function loadStoredSettings() {
-  let raw;
-  try {
-    raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-  } catch (e) {
-    return null; // localStorage недоступен (приватный режим и т.п.)
-  }
+  const raw = readStoredSettingsRaw();
+  lastSettingsRaw = raw;
   if (!raw) return null;
 
   let data;
@@ -340,10 +504,13 @@ function loadStoredSettings() {
     digits: bool(data.digits, false),
     fkeys: bool(data.fkeys, false),
     control: bool(data.control, false),
+    fullSet: bool(data.fullSet, false),
     showSequence: bool(data.showSequence, false),
+    blind: bool(data.blind, false),
     // Раньше это был флажок «Отображать для двух рук»: true — то же, что «половины»
     hands: data.hands === true ? 'halves'
       : ['off', 'halves', 'fingers'].includes(data.hands) ? data.hands : 'off',
+    hint: ['never', 'delay', 'instant'].includes(data.hint) ? data.hint : 'never',
     cycles: clampInt(data.cycles, 5, 100, 5),
     repeats: clampInt(data.repeats, 1, 10, 1)
   };
@@ -351,21 +518,34 @@ function loadStoredSettings() {
 
 function saveSettings(settings) {
   try {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    const raw = JSON.stringify(settings);
+    localStorage.setItem(SETTINGS_STORAGE_KEY, raw);
+    lastSettingsRaw = raw;
   } catch (e) {
     // localStorage недоступен — настройки просто не сохранятся для следующего раза
   }
 }
 
 // ==================== ОБРАБОТЧИКИ НАСТРОЕК ====================
-// Флажки наборов и выбор букв сразу меняют предпросмотр на клавиатуре
-// (validateCheckboxes может вернуть набор букв «Рус», поэтому она первая)
+// Флажки наборов и выбор букв сразу меняют предпросмотр на клавиатуре и число
+// символов у «Весь набор» (validateCheckboxes может вернуть набор букв «Рус»,
+// поэтому она первая)
 [letterSetSelect, cbSpecial, cbDigits, cbFkeys, cbControl].forEach(el => {
-  el.addEventListener('change', () => { validateCheckboxes(); markSettingsChanged(); refreshKeyboard(); });
+  el.addEventListener('change', () => {
+    validateCheckboxes();
+    markSettingsChanged();
+    refreshKeyboard();
+    updateCyclesControl();
+  });
 });
+cbFullSet.addEventListener('change', () => { markSettingsChanged(); updateCyclesControl(); });
 cbShowSeq.addEventListener('change', markSettingsChanged);
-// Зоны рук — тоже сразу в предпросмотре
-handsSelect.addEventListener('change', () => { markSettingsChanged(); refreshKeyboard(); });
+// Зоны рук и скрытые подписи — тоже сразу в предпросмотре
+[handsSelect, cbBlind].forEach(el => {
+  el.addEventListener('change', () => { markSettingsChanged(); refreshKeyboard(); });
+});
+// Подсказка работает только в задании
+hintSelect.addEventListener('change', markSettingsChanged);
 
 cyclesSlider.addEventListener('input', () => {
   cyclesVal.textContent = cyclesSlider.value;
@@ -390,27 +570,35 @@ applyBtn.addEventListener('click', () => {
 });
 
 // ==================== ПОСТРОЕНИЕ ПОСЛЕДОВАТЕЛЬНОСТИ ====================
-// Гарантирует по одному символу из каждой включённой категории
-// и отсутствие двух одинаковых символов подряд между циклами.
+// Перемешивает массив на месте (Fisher–Yates) и возвращает его
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// «Весь набор»: каждый символ выбранных наборов по одному разу в случайном порядке
+// (пулы не пересекаются, поэтому повторов и одинаковых соседей нет).
+// Иначе — settings.cycles символов: гарантирует по одному символу из каждой
+// включённой категории и отсутствие двух одинаковых символов подряд между циклами.
 // Пулы категорий не пересекаются, поэтому «обязательные» символы
 // не могут совпасть друг с другом; остальные позиции заполняются
 // с проверкой обоих соседей.
 function buildCycleSequence(settings) {
-  const N = settings.cycles;
   const pools = getCategoryPools(settings);
 
   if (pools.length === 0) return [];
+  if (settings.fullSet) return shuffle(pools.flat());
 
+  const N = settings.cycles;
   const result = new Array(N).fill(null);
 
   // Случайные позиции для «обязательных» символов — по одной на категорию
   const positions = [];
   for (let i = 0; i < N; i++) positions.push(i);
-  // Fisher–Yates
-  for (let i = positions.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [positions[i], positions[j]] = [positions[j], positions[i]];
-  }
+  shuffle(positions);
 
   const placed = Math.min(pools.length, N);
   for (let c = 0; c < placed; c++) {
@@ -453,17 +641,23 @@ function clearTimers() {
   if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
   if (nextTimeout) { clearTimeout(nextTimeout); nextTimeout = null; }
   if (promptTimeout) { clearTimeout(promptTimeout); promptTimeout = null; }
+  clearHint();
 }
 
-function beginCountdown() {
+// symbols — готовый набор символов задания («Повторить ошибки»); без него задание
+// строится по настройкам
+function beginCountdown(symbols = null) {
   clearTimers();
+  pendingSymbols = symbols;
   resultsEl.innerHTML = '';
   progressEl.textContent = '';
   setFeedback('');
 
   state = 'COUNTDOWN';
   abortBtn.hidden = false;
-  // На время отсчёта клавиатура показывает применённые настройки, а не черновик флажков
+  // На время отсчёта клавиатура показывает применённые настройки, а не черновик флажков,
+  // на основном слое
+  shownLayer = 0;
   renderKeyboard(appliedSettings);
   // После предыдущего задания панель прокручена к таблице результатов
   jmyakPanel.scrollTop = 0;
@@ -498,7 +692,8 @@ function startTask() {
   }
 
   // Строим по циклам (по одному символу на цикл)
-  const cyclesSymbols = buildCycleSequence(runSettings);
+  const cyclesSymbols = pendingSymbols || buildCycleSequence(runSettings);
+  pendingSymbols = null;
 
   // Разворачиваем в последовательность нажатий с учётом повторов
   sequence = [];
@@ -512,11 +707,8 @@ function startTask() {
 
   currentIndex = 0;
   renderKeyboard(runSettings);
-  if (runSettings.showSequence) {
-    // Клавиши, которые встретятся в задании, — жёлтым (текущую отдельно не выделяем)
-    const taskCodes = cyclesSymbols.flatMap(sym => symbolCodes(sym, runSettings));
-    JmakKeyboard.toggle(keyMap, taskCodes, 'kb-task', true);
-  }
+  // Клавиши, которые встретятся в задании, — жёлтым (текущую отдельно не выделяем)
+  highlightTaskKeys();
   nextSymbol();
 }
 
@@ -530,7 +722,8 @@ function abortTask() {
   abortBtn.hidden = true;
   progressEl.textContent = '';
   setFeedback('');
-  refreshKeyboard(); // снимает жёлтый и вспышки, возвращает предпросмотр
+  shownLayer = 0;
+  refreshKeyboard(); // снимает жёлтый и вспышки, возвращает предпросмотр на основном слое
   updateStartPrompt();
 }
 
@@ -544,12 +737,16 @@ function nextSymbol() {
   inputLocked = false;
   currentSymbol = sequence[currentIndex];
   startTime = Date.now();
-  setStatus('Жми' + layoutHint(currentSymbol, runSettings), displayKey(currentSymbol), 'target');
+  // Символ на другом слое сплита — показываем этот слой и называем его в подсказке
+  showLayerFor(currentSymbol);
+  scheduleHint();
+  setStatus('Жми' + symbolHints(currentSymbol, runSettings), displayKey(currentSymbol), 'target');
   // Строка под клавиатурой не очищается: результат прошлого нажатия виден до следующего
 
   const cycle = Math.floor(currentIndex / runSettings.repeats) + 1;
   const repeat = (currentIndex % runSettings.repeats) + 1;
-  progressEl.textContent = `Цикл ${cycle}/${runSettings.cycles}, повтор ${repeat}/${runSettings.repeats}`;
+  // Число циклов берём из задания: при «Весь набор» оно не равно ползунку
+  progressEl.textContent = `Цикл ${cycle}/${taskEvents.length}, повтор ${repeat}/${runSettings.repeats}`;
 }
 
 function finishTask() {
@@ -561,7 +758,8 @@ function finishTask() {
   setStatus('Задание выполнено!');
   setFeedback('');
   progressEl.textContent = '';
-  refreshKeyboard(); // снимает жёлтый и вспышки, возвращает предпросмотр
+  shownLayer = 0;
+  refreshKeyboard(); // снимает жёлтый и вспышки, возвращает предпросмотр на основном слое
   renderResults();
   currentStartKey = Math.random() < 0.5 ? ' ' : 'Enter';
   requestAnimationFrame(() => {
@@ -575,8 +773,51 @@ function finishTask() {
   }, 1500);
 }
 
+// Клавиши, которые были нажаты не с первого раза: цели циклов, где было хотя бы
+// одно ошибочное нажатие, без повторов и в порядке появления. В режиме «Все»
+// к буквам добавлена раскладка — иначе «с» и «c» в списке не различить, а к символам
+// с другого слоя сплита — название слоя.
+function missedSymbols() {
+  const missed = [];
+  taskEvents.forEach(item => {
+    if (item.events.some(e => !e.isCorrect) && !missed.includes(item.target)) {
+      missed.push(item.target);
+    }
+  });
+  return missed;
+}
+
+function renderMistakes(missed) {
+  const text = missed.length === 0
+    ? '<p class="mistakes-none">Без ошибок, молодец!</p>'
+    : '<p>Клавиши, которые были нажаты не с первого раза: ' +
+      missed.map(sym => `<b class="mistakes-key">${escapeHtml(displayKey(sym) + symbolHints(sym, runSettings))}</b>`).join(', ') +
+      '. Уделите им внимание.</p>' +
+      '<button type="button" class="btn btn-primary" id="retryBtn">Повторить ошибки</button>';
+  return `<div class="mistakes"><h3>Ошибки при нажатии</h3>${text}</div>`;
+}
+
+// «Повторить ошибки»: каждая клавиша с ошибкой RETRY_ROUNDS раз, круги перемешаны,
+// на стыке кругов одна и та же клавиша не идёт дважды подряд
+function buildRetrySequence(symbols) {
+  const result = [];
+  for (let r = 0; r < RETRY_ROUNDS; r++) {
+    const round = shuffle(symbols.slice());
+    if (round.length > 1 && round[0] === result[result.length - 1]) {
+      [round[0], round[1]] = [round[1], round[0]];
+    }
+    result.push(...round);
+  }
+  return result;
+}
+
+// Итоги задания: блок ошибок (с кнопкой «Повторить ошибки») и под ним свёрнутая
+// таблица всех нажатий
 function renderResults() {
-  let html = '<h3>Результаты</h3><table><thead><tr><th>№</th><th>Целевая клавиша</th><th>Нажатия</th><th>Ошибки</th><th>Среднее время (мс)</th></tr></thead><tbody>';
+  const missed = missedSymbols();
+  let html = renderMistakes(missed) +
+    '<details class="info results-details"><summary>Подробные результаты</summary>' +
+    '<div class="results-body"><table><thead><tr><th>№</th><th>Целевая клавиша</th><th>Нажатия</th><th>Ошибки</th><th>Среднее время (мс)</th></tr></thead><tbody>';
   taskEvents.forEach((item, idx) => {
     const events = item.events;
     const errors = events.filter(e => !e.isCorrect).length;
@@ -594,8 +835,17 @@ function renderResults() {
       <td>${avgTime}</td>
     </tr>`;
   });
-  html += '</tbody></table>';
+  html += '</tbody></table></div></details>';
   resultsEl.innerHTML = html;
+
+  const retryBtn = document.getElementById('retryBtn');
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => {
+      // Фокус с кнопки снимаем, чтобы нажатия в задании не «нажимали» её
+      retryBtn.blur();
+      beginCountdown(buildRetrySequence(missed));
+    });
+  }
 }
 
 // ==================== ОБРАБОТКА КЛАВИШ ====================
@@ -613,19 +863,21 @@ function dropStaleModifiers(e) {
 }
 
 // Регистрирует нажатие клавиши (верное или ошибочное) в текущем цикле.
-// code — KeyboardEvent.code нажатой физической клавиши (у синтетических событий пустой).
-function handlePress(key, time, code = '') {
+// code — KeyboardEvent.code нажатой физической клавиши (у синтетических событий пустой),
+// shift — был ли зажат Shift: по code и shift находим нажатую позицию на схеме.
+function handlePress(key, time, code = '', shift = false) {
   if (state !== 'TASK' || inputLocked) return;
   const cycle = taskEvents[Math.floor(currentIndex / runSettings.repeats)];
   if (!cycle) return;
+  const pressedPos = code ? kbModel.positionOf(code, shift, shownLayer) : null;
 
   if (normalizeKey(key) === normalizeKey(currentSymbol)) {
     inputLocked = true;
+    clearHint();
     // Подсвечиваем клавишу, которую реально нажали: в режиме «Все» знак может набираться
     // не той клавишей, где он стоит в US-раскладке. Если её нет на клавиатуре
     // (цифровой блок) или код неизвестен — клавишу, на которой стоит символ.
-    const codes = keyMap.has(code) ? [code] : symbolCodes(currentSymbol, runSettings);
-    flashKeys(codes, 'kb-correct', ADVANCE_DELAY_MS);
+    flashKeys(pressedPos ? [pressedPos] : symbolPositions(currentSymbol, runSettings), 'kb-correct', ADVANCE_DELAY_MS);
     setFeedback(`${time} мс`, 'ok');
     cycle.events.push({ key, time, isCorrect: true });
 
@@ -634,7 +886,8 @@ function handlePress(key, time, code = '') {
   } else {
     // Клавишу, которой нет на клавиатуре (например, цифрового блока), не видно,
     // но ошибка всё равно показывается строкой под клавиатурой
-    flashKeys(code ? [code] : symbolCodes(key, runSettings), 'kb-wrong', WRONG_FLASH_MS);
+    const wrongPositions = pressedPos ? [pressedPos] : code ? [] : symbolPositions(key, runSettings);
+    flashKeys(wrongPositions, 'kb-wrong', WRONG_FLASH_MS);
     setFeedback(`✗ ${feedbackKey(key)} · ${time} мс`, 'bad');
     cycle.events.push({ key, time, isCorrect: false });
   }
@@ -679,7 +932,7 @@ window.addEventListener('keydown', (e) => {
       return;
     }
 
-    handlePress(e.key, Date.now() - startTime, e.code);
+    handlePress(e.key, Date.now() - startTime, e.code, e.shiftKey);
   }
 });
 

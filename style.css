@@ -51,6 +51,13 @@
   --finger-right-pinky: #db61a2;
   --finger-thumb: #8b949e;
 
+  /* Цвета слоёв записанной раскладки сплита (клавиши слоёв, угловые подписи) */
+  --layer-1: #a371f7;
+  --layer-2: #f0883e;
+  --layer-3: #39c5bb;
+  --layer-4: #f778ba;
+  --layer-5: #e3b341;
+
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-panel: 2px 0 5px rgba(0, 0, 0, 0.3);
 
@@ -106,6 +113,12 @@
   --finger-right-ring: #8250df;
   --finger-right-pinky: #a0369a;
   --finger-thumb: #6e7781;
+
+  --layer-1: #8250df;
+  --layer-2: #bc4c00;
+  --layer-3: #0f8a80;
+  --layer-4: #bf3989;
+  --layer-5: #9a6700;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
   --shadow-panel: 2px 0 5px rgba(0, 0, 0, 0.05);
@@ -234,6 +247,56 @@ input[type="range"] {
   cursor: pointer;
 }
 
+/* Неактивный ползунок («Количество циклов» при «Весь набор») */
+.slider.disabled {
+  opacity: 0.5;
+}
+
+input[type="range"]:disabled {
+  cursor: not-allowed;
+}
+
+/* Линия между наборами символов и остальными настройками — как над «Тёмная тема».
+   Панель настроек — flex-колонка, отступы не схлопываются: вместе с 7px у соседних
+   флажков с каждой стороны линии получается 11px, почти как у переключателя темы */
+.settings-divider {
+  margin: 4px 0;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* ----- Компактные отступы в панели настроек тренажёра: все пункты помещаются по высоте
+   на экране 1920×1080 (в окне браузера это около 920–950px). Те же элементы на странице
+   «Вид клавиатуры» сохраняют обычные отступы ----- */
+.settings .panel-title {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+}
+
+.settings .check {
+  margin: 7px 0;
+}
+
+.settings .field {
+  margin: 8px 0 10px;
+}
+
+.settings .field-label {
+  margin-bottom: 4px;
+}
+
+.settings .select {
+  padding: 6px 10px;
+}
+
+.settings .slider {
+  margin: 10px 0;
+}
+
+.settings .apply {
+  margin-top: 8px;
+  padding: 10px;
+}
+
 .apply {
   width: 100%;
   padding: 12px;
@@ -295,7 +358,7 @@ input[type="range"] {
 /* Один margin-top:auto на весь блок — два auto поделили бы свободное место пополам */
 .settings-footer {
   margin-top: auto;
-  padding-top: 16px;
+  padding-top: 12px;
 }
 
 .nav-link {
@@ -317,12 +380,12 @@ input[type="range"] {
 }
 
 .settings-footer .nav-link {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 /* ----- Переключатель темы ----- */
 .theme-toggle {
-  padding-top: 16px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-soft);
   display: flex;
   align-items: center;
@@ -527,6 +590,79 @@ input[type="range"] {
   font-weight: 600;
 }
 
+/* Клавиша сплита, которой пока ничего не назначено (до «запоминания» раскладки) */
+.kb-key.kb-empty {
+  border-style: dashed;
+}
+
+/* Слои записанной раскладки. Клавиша слоя получает цвет своего слоя (--lc):
+   переключатель («L1») подписан этим цветом, у tap-hold клавиши — номер слоя в углу */
+.kb-lc-1 { --lc: var(--layer-1); }
+.kb-lc-2 { --lc: var(--layer-2); }
+.kb-lc-3 { --lc: var(--layer-3); }
+.kb-lc-4 { --lc: var(--layer-4); }
+.kb-lc-5 { --lc: var(--layer-5); }
+
+.kb-key.kb-layer-only {
+  color: var(--lc);
+}
+
+.kb-layer-badge {
+  position: absolute;
+  left: 4px;
+  bottom: 3px;
+  font-size: calc(var(--u) * 0.2);
+  color: var(--lc);
+}
+
+/* Угловые подписи на основном слое: что на этой клавише на слоях 1 и 2 */
+.kb-legend {
+  position: absolute;
+  font-size: calc(var(--u) * 0.22);
+  font-weight: 700;
+}
+
+.kb-legend-1 {
+  top: 3px;
+  right: 4px;
+  color: var(--layer-1);
+}
+
+.kb-legend-2 {
+  left: 4px;
+  bottom: 3px;
+  color: var(--layer-2);
+}
+
+/* На показанном слое клавиша такая же, как на основном, — подпись бледная */
+.kb-key.kb-transparent > span {
+  opacity: 0.35;
+}
+
+/* Клавиша основного слоя, которая включает показанный слой (в задании — слой символа) */
+.kb-key.kb-layer-target {
+  border-color: var(--lc);
+  box-shadow: 0 0 0 2px var(--lc);
+}
+
+/* Клавиши предпросмотра на странице «Вид клавиатуры» кликабельны (запись одной клавиши) */
+.keyboard.editable .kb-key {
+  cursor: pointer;
+}
+
+.keyboard.editable .kb-key:hover {
+  border-color: var(--text-secondary);
+}
+
+/* Клавиша, которую сейчас записываем */
+.kb-key.kb-current,
+.keyboard.editable .kb-key.kb-current:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+  z-index: 1;
+}
+
 /* Символ с Shift — в левом верхнем углу, кириллица в режиме «Все» — в правом нижнем */
 .kb-shift,
 .kb-alt {
@@ -552,27 +688,30 @@ input[type="range"] {
 }
 
 /* Зоны рук («Отображение для рук»): короткая черта у нижнего края клавиши.
-   Режим на контейнере (kb-hands-halves / kb-hands-fingers) задаёт клавише цвет
-   --hand-color по её зоне, а черту рисует одно общее правило ниже. При «Откл»
-   класса режима нет — черт нет */
+   Цвет пальца (--finger-color) у клавиши есть всегда; режим на контейнере
+   (kb-hands-halves / kb-hands-fingers) задаёт цвет черты --hand-color по руке или
+   пальцу, а рисует черту одно общее правило ниже. При «Откл» класса режима нет —
+   черт нет (кроме подсказки, где нажимать: она показывает палец) */
+.kb-hand-left-pinky   { --finger-color: var(--finger-left-pinky); }
+.kb-hand-left-ring    { --finger-color: var(--finger-left-ring); }
+.kb-hand-left-middle  { --finger-color: var(--finger-left-middle); }
+.kb-hand-left-index   { --finger-color: var(--finger-left-index); }
+.kb-hand-right-index  { --finger-color: var(--finger-right-index); }
+.kb-hand-right-middle { --finger-color: var(--finger-right-middle); }
+.kb-hand-right-ring   { --finger-color: var(--finger-right-ring); }
+.kb-hand-right-pinky  { --finger-color: var(--finger-right-pinky); }
+.kb-hand-thumb        { --finger-color: var(--finger-thumb); }
+
 .keyboard.kb-hands-halves .kb-hand-left  { --hand-color: var(--hand-left); }
 .keyboard.kb-hands-halves .kb-hand-right { --hand-color: var(--hand-right); }
-
-.keyboard.kb-hands-fingers .kb-hand-left-pinky   { --hand-color: var(--finger-left-pinky); }
-.keyboard.kb-hands-fingers .kb-hand-left-ring    { --hand-color: var(--finger-left-ring); }
-.keyboard.kb-hands-fingers .kb-hand-left-middle  { --hand-color: var(--finger-left-middle); }
-.keyboard.kb-hands-fingers .kb-hand-left-index   { --hand-color: var(--finger-left-index); }
-.keyboard.kb-hands-fingers .kb-hand-right-index  { --hand-color: var(--finger-right-index); }
-.keyboard.kb-hands-fingers .kb-hand-right-middle { --hand-color: var(--finger-right-middle); }
-.keyboard.kb-hands-fingers .kb-hand-right-ring   { --hand-color: var(--finger-right-ring); }
-.keyboard.kb-hands-fingers .kb-hand-right-pinky  { --hand-color: var(--finger-right-pinky); }
-.keyboard.kb-hands-fingers .kb-hand-thumb        { --hand-color: var(--finger-thumb); }
+.keyboard.kb-hands-fingers .kb-key       { --hand-color: var(--finger-color); }
 
 /* Ширина задана в u, а не в процентах — на широких клавишах черта не растягивается.
    Черта ниже подписи в правом нижнем углу (кириллица в режиме «Все») и подальше
    от засечки на А/О. У клавиши без цвета (пробел в режиме половин) черта прозрачная */
 .keyboard.kb-hands-halves .kb-key::after,
-.keyboard.kb-hands-fingers .kb-key::after {
+.keyboard.kb-hands-fingers .kb-key::after,
+.kb-key.kb-hint::after {
   content: '';
   position: absolute;
   left: 50%;
@@ -595,6 +734,34 @@ input[type="range"] {
   border-color: var(--warning);
   color: var(--warning);
   background: var(--warning-bg);
+}
+
+/* «Подсказка, где нажимать»: целевая клавиша и черта её пальца (цвет пальца) */
+.kb-key.kb-hint {
+  --hand-color: var(--finger-color);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  background: var(--accent-bg);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+  z-index: 1;
+}
+
+/* «Скрыть подписи клавиш»: пустые кейкапы — видна только форма клавиатуры.
+   Засечки на А/О остаются — черточкой, как на настоящих клавишах */
+.keyboard.kb-blind .kb-key > span {
+  visibility: hidden;
+}
+
+.keyboard.kb-blind .kb-bump::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 30%;
+  width: calc(var(--u) * 0.24);
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: currentColor;
 }
 
 /* Вспышки загораются мгновенно (transition: none), а гаснут плавно — за счёт
@@ -650,6 +817,41 @@ input[type="range"] {
 .results h3 {
   margin: 0 0 10px;
   font-size: 18px;
+}
+
+/* «Ошибки при нажатии» — карточка в стиле блока «Информация и советы» */
+.mistakes {
+  margin-bottom: 15px;
+  padding: 14px 16px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.mistakes p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.mistakes-key {
+  color: var(--error);
+}
+
+.mistakes .mistakes-none {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.mistakes .btn {
+  margin-top: 12px;
+}
+
+/* «Подробные результаты» — свёрнутый блок (классы .info дают вид как у «Информации и советов») */
+.results-details .results-body {
+  padding: 0 16px 16px;
+  overflow-x: auto;
 }
 
 .results table {
@@ -734,19 +936,200 @@ input[type="range"] {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-}
-
-/* display:grid иначе перебил бы атрибут hidden */
-.split-halves[hidden] {
-  display: none;
+  margin-bottom: 16px;
 }
 
 .split-halves .card {
   margin-bottom: 0;
 }
 
+/* Правая половина при «Половины одинаковые» — повторяет левую, ползунки неактивны */
+.card.disabled {
+  opacity: 0.5;
+}
+
+/* Два поля со списками в одну строку (пресет и смещение столбцов) */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.field-row .field {
+  margin: 0 0 4px;
+}
+
+/* Отметка «Сохранено» в шапке — появляется на 1,5 с после каждого изменения */
+.save-note {
+  margin-left: 6px;
+  color: var(--success);
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.save-note.visible {
+  opacity: 1;
+}
+
+.save-note.error {
+  color: var(--error);
+}
+
+.preview-note {
+  margin-top: 12px;
+}
+
+/* Результат сохранения в файл / загрузки из файла («Резервная копия») */
+.backup-status {
+  min-height: 20px;
+  margin-top: 10px;
+}
+
+.backup-status.ok {
+  color: var(--success);
+}
+
+.backup-status.error {
+  color: var(--error);
+}
+
+/* ----- Кнопки (страница «Вид клавиатуры», «Повторить ошибки» в результатах) ----- */
+.btn {
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--text-tertiary);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.btn-primary {
+  color: #ffffff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Вкладки слоёв над предпросмотром */
+.layer-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.layer-tabs[hidden] {
+  display: none;
+}
+
+.layer-tab {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.layer-tab.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  font-weight: 600;
+}
+
+/* Во время задания слой переключается сам — вкладки только показывают, какой */
+.layer-tab:disabled {
+  cursor: default;
+}
+
+.layer-tab:disabled:not(.active) {
+  opacity: 0.5;
+}
+
+/* Вкладки слоёв над клавиатурой тренажёра */
+.trainer-tabs {
+  justify-content: center;
+}
+
+.layer-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Мастер записи раскладки */
+.wizard {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent-bg);
+}
+
+.wizard-title {
+  font-weight: 700;
+}
+
+.wizard-text {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wizard-last {
+  min-height: 21px;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.wizard .btn-row {
+  margin-top: 8px;
+}
+
+.select.wizard-select {
+  width: auto;
+  padding: 7px 10px;
+  font-size: 14px;
+}
+
 @media (max-width: 600px) {
-  .split-halves {
+  .split-halves,
+  .field-row {
     grid-template-columns: 1fr;
   }
 }
