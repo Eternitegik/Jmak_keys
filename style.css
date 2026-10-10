@@ -60,6 +60,8 @@
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-panel: 2px 0 5px rgba(0, 0, 0, 0.3);
+  --shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --backdrop: rgba(1, 4, 9, 0.75);
 
   --scrollbar-track: #161b22;
   --scrollbar-thumb: #30363d;
@@ -122,6 +124,8 @@
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
   --shadow-panel: 2px 0 5px rgba(0, 0, 0, 0.05);
+  --shadow-modal: 0 8px 24px rgba(140, 149, 159, 0.2);
+  --backdrop: rgba(31, 35, 40, 0.45);
 
   --scrollbar-track: #f1f1f1;
   --scrollbar-thumb: #c1c1c1;
@@ -1039,6 +1043,98 @@ input[type="range"]:disabled {
   align-items: center;
   gap: 8px;
   margin-top: 12px;
+}
+
+/* ----- Окно первого запуска «Какой клавиатурой вы пользуетесь?» (index.html) ----- */
+/* Закрывается только кнопками; содержимое страницы под ним недоступно (inert) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--backdrop);
+}
+
+.modal-backdrop[hidden] {
+  display: none;
+}
+
+.modal {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  text-align: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-modal);
+  outline: none;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.modal-buttons {
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.modal-buttons .btn {
+  min-width: 140px;
+}
+
+/* ----- Предупреждение «Браузер не даёт сохранять данные» (обе страницы) ----- */
+.storage-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  border-radius: 8px;
+}
+
+.storage-warning[hidden] {
+  display: none;
+}
+
+.storage-warning p {
+  margin: 0;
+  flex: 1;
+}
+
+/* На странице «Вид клавиатуры» — отступ как у карточек; в тренажёре его даёт gap панели */
+.page > .storage-warning {
+  margin-bottom: 16px;
+}
+
+.storage-warning-close {
+  flex-shrink: 0;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.storage-warning-close:hover {
+  color: var(--text-primary);
+}
+
+.storage-warning-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* Вкладки слоёв над предпросмотром */

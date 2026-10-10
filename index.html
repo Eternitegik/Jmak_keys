@@ -89,6 +89,11 @@
   <!-- ================= ПРАВЫЙ БЛОК: ЖМЯК ================= -->
   <main class="panel jmyak" id="jmyakPanel">
 
+    <div class="storage-warning" id="storageWarning" role="alert" hidden>
+      <p><b>Браузер не даёт сохранять данные.</b> Тренажёр работает, но настройки и тема не запомнятся до следующего открытия, а сплит-клавиатура со страницы «Вид клавиатуры» сюда не попадёт. Разрешите этому сайту сохранять файлы cookie и данные сайтов в настройках браузера и перезагрузите страницу.</p>
+      <button type="button" class="storage-warning-close" id="storageWarningClose" aria-label="Скрыть предупреждение">✕</button>
+    </div>
+
     <details class="info" id="infoBlock">
       <summary>Информация и советы</summary>
       <div class="info-body">
@@ -152,6 +157,17 @@
     <div class="results" id="results"></div>
 
   </main>
+</div>
+
+<!-- ================= ПЕРВЫЙ ЗАПУСК: ВЫБОР КЛАВИАТУРЫ ================= -->
+<div class="modal-backdrop" id="welcome" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" tabindex="-1">
+    <h2 class="modal-title" id="welcomeTitle">Какой клавиатурой вы пользуетесь?</h2>
+    <div class="btn-row modal-buttons">
+      <button type="button" class="btn btn-primary" id="welcomeStandard">Классическая</button>
+      <button type="button" class="btn btn-primary" id="welcomeSplit">Сплит</button>
+    </div>
+  </div>
 </div>
 
 <script src="keyboard.js"></script>

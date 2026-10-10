@@ -40,6 +40,8 @@
   const previewTitle = $('previewTitle');
   const splitNote = $('splitNote');
   const saveNote = $('saveNote');
+  const storageWarning = $('storageWarning');
+  const storageWarningClose = $('storageWarningClose');
   const layerTabs = $('layerTabs');
   const layoutTools = $('layoutTools');
   const learnBtn = $('learnBtn');
@@ -190,6 +192,14 @@
     const ok = JmakKeyboard.saveConfig(config);
     showNote(ok ? 'Сохранено' : 'Не удалось сохранить: хранилище браузера недоступно', ok);
   }
+
+  // Браузер может запретить сайту сохранять данные — тогда изменения не попадут в
+  // тренажёр. Предупреждаем полосой под шапкой; крестик скрывает её до перезагрузки
+  storageWarning.hidden = JmakKeyboard.storageAvailable();
+  storageWarningClose.addEventListener('click', () => {
+    storageWarning.hidden = true;
+    storageWarningClose.blur();
+  });
 
   // ---------- Отрисовка ----------
   function renderPreview() {

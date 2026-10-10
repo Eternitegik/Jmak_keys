@@ -447,6 +447,20 @@ const JmakKeyboard = (function () {
     }
   }
 
+  // Можно ли сохранять данные. Браузер может запретить сайту хранилище (тогда обращение
+  // к localStorage бросает исключение), или оно переполнено. Проверяем пробной записью:
+  // чтение может работать, а запись — нет
+  function storageAvailable() {
+    const key = 'jmak-storage-test';
+    try {
+      localStorage.setItem(key, '1');
+      localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // ---------- Раскладка и модель ----------
   // Раскладка для формы: по умолчанию каждая позиция отправляет свой defaultCode
   // (у стандартной клавиатуры — свой же код), поверх — записанная раскладка recorded
@@ -680,6 +694,6 @@ const JmakKeyboard = (function () {
 
   return {
     buildLayout, learningOrder, buildKeymap, defaultKeymap, createModel, render, keyLabel, toggle,
-    CONFIG_KEY, MAX_LAYERS, layerName, loadConfig, saveConfig, normalizeConfig
+    CONFIG_KEY, MAX_LAYERS, layerName, loadConfig, saveConfig, normalizeConfig, storageAvailable
   };
 })();

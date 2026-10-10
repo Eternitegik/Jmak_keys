@@ -894,6 +894,10 @@ function handlePress(key, time, code = '', shift = false) {
 }
 
 window.addEventListener('keydown', (e) => {
+  // Пока открыто окно первого запуска, задание не запускается: после клика по фону
+  // фокус на body, и Пробел/Enter иначе начали бы отсчёт под окном. Нажатия на кнопках
+  // окна работают как обычно (preventDefault не вызываем)
+  if (!welcomeEl.hidden) return;
   if (state === 'IDLE' || state === 'FINISHED') {
     // На элементах управления клавиши работают как обычно (в том числе Enter на ссылке
     // «Вид клавиатуры» — переход, а не старт задания)
@@ -956,6 +960,59 @@ window.addEventListener('blur', () => {
   heldModifiers.clear();
 });
 
+// ==================== ХРАНИЛИЩЕ НЕДОСТУПНО ====================
+// Браузер может запретить сайту сохранять данные — тогда тренажёр работает, но ничего
+// не запоминает, а сплит со страницы «Вид клавиатуры» сюда не попадает (страницы
+// обмениваются настройками только через localStorage). Предупреждаем полосой вверху
+// панели; крестик скрывает её до перезагрузки
+const storageOk = JmakKeyboard.storageAvailable();
+const storageWarningEl = document.getElementById('storageWarning');
+const storageWarningClose = document.getElementById('storageWarningClose');
+storageWarningEl.hidden = storageOk;
+storageWarningClose.addEventListener('click', () => {
+  storageWarningEl.hidden = true;
+  // Снимаем фокус со скрытой кнопки, чтобы Пробел/Enter запускали задание
+  storageWarningClose.blur();
+});
+
+// ==================== ПЕРВЫЙ ЗАПУСК ====================
+// Если в браузере ещё ничего не сохранено, спрашиваем, какой клавиатурой пользуются.
+// Окно закрывается только кнопками: у обычного div нет встроенного закрытия (Esc,
+// как у <dialog>), а содержимое страницы под ним недоступно (inert). Ответ сохраняется
+// как тип клавиатуры, поэтому окно больше не появляется; «Сплит» сразу открывает
+// страницу «Вид клавиатуры» — там уже выбран сплит, осталось задать его форму.
+const welcomeEl = document.getElementById('welcome');
+const appEl = document.querySelector('.app');
+
+function isFirstVisit() {
+  if (!storageOk) return false; // ответ не сохранится — окно появлялось бы каждый раз
+  try {
+    return [JmakKeyboard.CONFIG_KEY, SETTINGS_STORAGE_KEY, 'jmak-theme']
+      .every(key => localStorage.getItem(key) === null);
+  } catch (e) {
+    return false;
+  }
+}
+
+function openWelcome() {
+  welcomeEl.hidden = false;
+  appEl.inert = true;
+  // Фокус на само окно, а не на кнопку: случайный Пробел (за окном видно «Для начала
+  // нажмите Пробел») не должен выбрать ответ. Кнопки доступны по Tab
+  welcomeEl.querySelector('.modal').focus();
+}
+
+function chooseKeyboard(type) {
+  kbConfig = JmakKeyboard.normalizeConfig(Object.assign({}, kbConfig, { type }));
+  JmakKeyboard.saveConfig(kbConfig);
+  welcomeEl.hidden = true;
+  appEl.inert = false;
+  if (type === 'split') location.href = 'key_settings.html';
+}
+
+document.getElementById('welcomeStandard').addEventListener('click', () => chooseKeyboard('standard'));
+document.getElementById('welcomeSplit').addEventListener('click', () => chooseKeyboard('split'));
+
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 // Сначала переносим в форму настройки, сохранённые в localStorage (если они
 // есть), затем приводим DOM в согласованное состояние (браузер мог восстановить
@@ -969,3 +1026,4 @@ appliedSettings = readSettingsFromDom();
 runSettings = appliedSettings;
 updateStartPrompt();
 refreshKeyboard();
+if (isFirstVisit()) openWelcome();
