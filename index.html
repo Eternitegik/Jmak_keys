@@ -14,74 +14,83 @@
     } catch (e) {}
   })();
 </script>
-<title>Жмяк — тренажёр расположения клавиш</title>
+<!-- Переводы: модуль локализации, затем список языков (он подключает файлы переводов) -->
+<script src="js/i18n.js"></script>
+<script src="localization/languages.js"></script>
+<title data-i18n="trainer.title">Жмяк — тренажёр расположения клавиш</title>
 <link rel="stylesheet" href="style/style.css">
 </head>
 <body>
 
+<!-- Тексты разметки — на русском как запасной вариант; при загрузке их заменяет перевод
+     по ключам data-i18n (см. js/i18n.js) -->
 <div class="app">
 
   <!-- ================= ЛЕВЫЙ БЛОК: НАСТРОЙКИ ================= -->
   <aside class="panel settings">
-    <h2 class="panel-title">Настройки</h2>
+    <h2 class="panel-title" data-i18n="trainer.settings.title">Настройки</h2>
 
     <div class="field">
-      <label class="field-label" for="letterSet">Набор букв</label>
+      <label class="field-label" for="letterSet" data-i18n="trainer.settings.letterSet">Набор букв</label>
       <select class="select" id="letterSet">
-        <option value="ru" selected>Рус</option>
-        <option value="en">Eng</option>
-        <option value="all">Все</option>
-        <option value="off">Откл</option>
+        <option value="ru" selected data-i18n="trainer.settings.letterSetRu">Рус</option>
+        <option value="en" data-i18n="trainer.settings.letterSetEn">Eng</option>
+        <option value="all" data-i18n="trainer.settings.letterSetAll">Все</option>
+        <option value="off" data-i18n="trainer.settings.off">Откл</option>
       </select>
     </div>
 
-    <label class="check"><input type="checkbox" id="cbSpecial"><span>Спец. символы</span></label>
-    <label class="check"><input type="checkbox" id="cbDigits"><span>Цифры</span></label>
-    <label class="check"><input type="checkbox" id="cbFkeys"><span>F клавиши</span></label>
-    <label class="check"><input type="checkbox" id="cbControl"><span>Управляющие клавиши</span></label>
+    <label class="check"><input type="checkbox" id="cbSpecial"><span data-i18n="trainer.settings.special">Спец. символы</span></label>
+    <label class="check"><input type="checkbox" id="cbDigits"><span data-i18n="trainer.settings.digits">Цифры</span></label>
+    <label class="check"><input type="checkbox" id="cbFkeys"><span data-i18n="trainer.settings.fkeys">F клавиши</span></label>
+    <label class="check"><input type="checkbox" id="cbControl"><span data-i18n="trainer.settings.control">Управляющие клавиши</span></label>
 
     <div class="settings-divider"></div>
 
-    <label class="check"><input type="checkbox" id="cbFullSet"><span>Весь набор</span></label>
-    <label class="check"><input type="checkbox" id="cbShowSeq"><span>Отображение списка букв</span></label>
-    <label class="check"><input type="checkbox" id="cbBlind"><span>Скрыть подписи клавиш</span></label>
+    <label class="check"><input type="checkbox" id="cbFullSet"><span data-i18n="trainer.settings.fullSet">Весь набор</span></label>
+    <label class="check"><input type="checkbox" id="cbShowSeq"><span data-i18n="trainer.settings.showSequence">Отображение списка букв</span></label>
+    <label class="check"><input type="checkbox" id="cbBlind"><span data-i18n="trainer.settings.blind">Скрыть подписи клавиш</span></label>
     <div class="field">
-      <label class="field-label" for="handsMode">Отображение для рук</label>
+      <label class="field-label" for="handsMode" data-i18n="trainer.settings.hands">Отображение для рук</label>
       <select class="select" id="handsMode">
-        <option value="off" selected>Откл</option>
-        <option value="halves">Разделение на половины</option>
-        <option value="fingers">Для каждого пальца</option>
+        <option value="off" selected data-i18n="trainer.settings.off">Откл</option>
+        <option value="halves" data-i18n="trainer.settings.handsHalves">Разделение на половины</option>
+        <option value="fingers" data-i18n="trainer.settings.handsFingers">Для каждого пальца</option>
       </select>
     </div>
     <div class="field">
-      <label class="field-label" for="hintMode">Подсказка, где нажимать</label>
+      <label class="field-label" for="hintMode" data-i18n="trainer.settings.hint">Подсказка, где нажимать</label>
       <select class="select" id="hintMode">
-        <option value="never" selected>Никогда</option>
-        <option value="delay">Если замешкался (через 2 с)</option>
-        <option value="instant">Сразу</option>
+        <option value="never" selected data-i18n="trainer.settings.hintNever">Никогда</option>
+        <option value="delay" data-i18n="trainer.settings.hintDelay">Если замешкался (через 2 с)</option>
+        <option value="instant" data-i18n="trainer.settings.hintInstant">Сразу</option>
       </select>
     </div>
 
     <div class="slider">
-      <div class="slider-head"><span>Количество циклов</span><b id="cyclesVal">5</b></div>
+      <div class="slider-head"><span data-i18n="trainer.settings.cycles">Количество циклов</span><b id="cyclesVal">5</b></div>
       <input type="range" id="cycles" min="5" max="100" step="1" value="5">
     </div>
 
     <div class="slider">
-      <div class="slider-head"><span>Количество повторений клавиши</span><b id="repeatsVal">1</b></div>
+      <div class="slider-head"><span data-i18n="trainer.settings.repeats">Количество повторений клавиши</span><b id="repeatsVal">1</b></div>
       <input type="range" id="repeats" min="1" max="10" step="1" value="1">
     </div>
 
-    <button id="applyBtn" class="apply">Применить</button>
+    <button id="applyBtn" class="apply" data-i18n="trainer.settings.apply">Применить</button>
 
     <div class="settings-footer">
-      <a class="nav-link" href="key_settings.html">Вид клавиатуры →</a>
+      <a class="nav-link" href="key_settings.html" data-i18n="trainer.settings.keyboardLink">Вид клавиатуры →</a>
       <div class="theme-toggle">
-        <span>Тёмная тема</span>
+        <span data-i18n="trainer.settings.darkTheme">Тёмная тема</span>
         <label class="switch">
           <input type="checkbox" id="themeToggle" checked>
           <span class="switch-track"></span>
         </label>
+      </div>
+      <div class="lang-toggle">
+        <label for="langSelect" data-i18n="trainer.settings.language">Язык</label>
+        <select class="select" id="langSelect"></select>
       </div>
     </div>
   </aside>
@@ -90,62 +99,63 @@
   <main class="panel jmyak" id="jmyakPanel">
 
     <div class="storage-warning" id="storageWarning" role="alert" hidden>
-      <p><b>Браузер не даёт сохранять данные.</b> Тренажёр работает, но настройки и тема не запомнятся до следующего открытия, а сплит-клавиатура со страницы «Вид клавиатуры» сюда не попадёт. Разрешите этому сайту сохранять файлы cookie и данные сайтов в настройках браузера и перезагрузите страницу.</p>
-      <button type="button" class="storage-warning-close" id="storageWarningClose" aria-label="Скрыть предупреждение">✕</button>
+      <p data-i18n-html="storage.trainer"><b>Браузер не даёт сохранять данные.</b> Тренажёр работает, но настройки, тема и язык не запомнятся до следующего открытия, а сплит-клавиатура со страницы «Вид клавиатуры» сюда не попадёт. Разрешите этому сайту сохранять файлы cookie и данные сайтов в настройках браузера и перезагрузите страницу.</p>
+      <button type="button" class="storage-warning-close" id="storageWarningClose" aria-label="Скрыть предупреждение" data-i18n-attr="aria-label:storage.close">✕</button>
     </div>
 
     <details class="info" id="infoBlock">
-      <summary>Информация и советы</summary>
+      <summary data-i18n="trainer.info.summary">Информация и советы</summary>
       <div class="info-body">
-        <p>Жмяк помогает запомнить расположение клавиш и натренировать мышечную память пальцев — особенно при переходе с обычной клавиатуры на сплит, когда первое время пальцы ищут клавиши не там. Время нажатия показывается, чтобы видеть прогресс, но главное — нажимать правильно, не глядя.</p>
-        <p>Форму своей сплит-клавиатуры (столбцы, ряды, клавиши под большой палец) можно задать на странице «Вид клавиатуры» — тренажёр нарисует её вместо обычной. Там же можно записать свою раскладку со слоями: страница по очереди подсвечивает клавиши, а вы нажимаете их на своей клавиатуре. Если цифры и спецсимволы у вас на разных клавишах (Shift + 9 не даёт скобку), включите там флажок «Цифры и спецсимволы на разных клавишах» — тогда символы будут показываться только на своих клавишах. Все настройки (клавиатура, раскладка со слоями, настройки тренажёра и тема) можно сохранить в файл и загрузить в другом браузере — карточка «Резервная копия» на той же странице.</p>
-        <p><b>Слои сплита.</b> Над клавиатурой появляются вкладки слоёв — в покое по ним можно посмотреть, что где лежит. На основном слое в углах клавиш мелко видно, что на них на слоях 1 и 2. Если символ задания лежит на другом слое, подсказка назовёт слой («Жми (Символы)»), клавиатура сама переключится на него, а клавиша, которая его включает, будет обведена цветом слоя.</p>
+        <p data-i18n-html="trainer.info.intro">Жмяк помогает запомнить расположение клавиш и натренировать мышечную память пальцев — особенно при переходе с обычной клавиатуры на сплит, когда первое время пальцы ищут клавиши не там. Время нажатия показывается, чтобы видеть прогресс, но главное — нажимать правильно, не глядя.</p>
+        <p data-i18n-html="trainer.info.split">Форму своей сплит-клавиатуры (столбцы, ряды, клавиши под большой палец) можно задать на странице «Вид клавиатуры» — тренажёр нарисует её вместо обычной. Там же можно записать свою раскладку со слоями: страница по очереди подсвечивает клавиши, а вы нажимаете их на своей клавиатуре. Если цифры и спецсимволы у вас на разных клавишах (Shift + 9 не даёт скобку), включите там флажок «Цифры и спецсимволы на разных клавишах» — тогда символы будут показываться только на своих клавишах. Все настройки (клавиатура, раскладка со слоями, настройки тренажёра, тема и язык) можно сохранить в файл и загрузить в другом браузере — карточка «Резервная копия» на той же странице.</p>
+        <p data-i18n-html="trainer.info.layers"><b>Слои сплита.</b> Над клавиатурой появляются вкладки слоёв — в покое по ним можно посмотреть, что где лежит. На основном слое в углах клавиш мелко видно, что на них на слоях 1 и 2. Если символ задания лежит на другом слое, подсказка назовёт слой («Жми (Символы)»), клавиатура сама переключится на него, а клавиша, которая его включает, будет обведена цветом слоя.</p>
         <ul>
-          <li>Выберите наборы символов слева и нажмите <b>«Применить»</b>.</li>
-          <li>Нажмите клавишу из подсказки (Пробел или Enter).</li>
-          <li>После отсчёта 3…1 появится символ — нажмите его на клавиатуре.</li>
-          <li>Если выбран набор букв «Все», рядом с «Жми» подсказывается раскладка буквы — <b>(Рус)</b> или <b>(Eng)</b>: например, «с» и «c» выглядят одинаково.</li>
-          <li><b>Количество циклов</b> — сколько разных символов будет в задании (от 5 до 100).</li>
-          <li><b>Количество повторений</b> — сколько раз подряд нужно нажать один и тот же символ.</li>
-          <li><b>«Весь набор»</b> — в задание попадают все символы выбранных наборов, каждый по одному разу в случайном порядке; количество циклов при этом не настраивается (рядом с ним показано, сколько символов войдёт в задание), повторения работают как обычно.</li>
-          <li>Если включено несколько наборов, каждый из них гарантированно появится в задании хотя бы один раз.</li>
-          <li>На клавиатуре синим отмечены клавиши из выбранных наборов, серым — остальные. Подсветка меняется сразу при переключении флажков, ещё до «Применить».</li>
-          <li>Если включено «Отображение списка букв», после старта задания клавиши, которые в нём встретятся, подсвечиваются жёлтым.</li>
-          <li>Верное нажатие вспыхивает на клавиатуре зелёным, ошибочное — красным; под клавиатурой показывается время нажатия.</li>
-          <li><b>«Отображение для рук»</b> — черта внизу клавиши подсказывает, чем её нажимать при слепой печати. «Разделение на половины»: фиолетовая — левой рукой, бирюзовая — правой. «Для каждого пальца»: у каждого пальца свой цвет, от розового (левый мизинец) до малинового (правый мизинец); серая — большие пальцы (пробел, Alt).</li>
-          <li>На обычной клавиатуре ряд Esc и F1–F12 появляется при включённых «F клавишах» или «Управляющих клавишах», блок Insert/Home/PgUp/Delete/End/PgDn со стрелками — при «Управляющих клавишах». На сплите этих клавиш нет — они обычно на слоях, задание засчитывает их нажатие, но на схеме не показывает.</li>
-          <li><b>«Подсказка, где нажимать»</b> — целевая клавиша подсвечивается на схеме вместе с чертой своего пальца: «Сразу» или «Если замешкался» (через 2 секунды, если клавиша ещё не нажата). По умолчанию подсказки нет — клавишу нужно найти самому.</li>
-          <li><b>«Скрыть подписи клавиш»</b> — на схеме остаются только формы клавиш (и засечки на А/О): где какой символ, нужно помнить.</li>
-          <li>В конце появится блок «Ошибки при нажатии» — клавиши, которые не удалось нажать с первого раза: им стоит уделить внимание. Кнопка <b>«Повторить ошибки»</b> сразу запускает задание из этих клавиш (каждая — по 3 раза). Ниже — свёрнутая таблица «Подробные результаты»: клавиша, все нажатия, ошибки, среднее время нажатия.</li>
+          <li data-i18n-html="trainer.info.steps.apply">Выберите наборы символов слева и нажмите <b>«Применить»</b>.</li>
+          <li data-i18n-html="trainer.info.steps.start">Нажмите клавишу из подсказки (Пробел или Enter).</li>
+          <li data-i18n-html="trainer.info.steps.countdown">После отсчёта 3…1 появится символ — нажмите его на клавиатуре.</li>
+          <li data-i18n-html="trainer.info.steps.layoutTag">Если выбран набор букв «Все», рядом с «Жми» подсказывается раскладка буквы — <b>(Рус)</b> или <b>(Eng)</b>: например, «с» и «c» выглядят одинаково.</li>
+          <li data-i18n-html="trainer.info.steps.cycles"><b>Количество циклов</b> — сколько разных символов будет в задании (от 5 до 100).</li>
+          <li data-i18n-html="trainer.info.steps.repeats"><b>Количество повторений</b> — сколько раз подряд нужно нажать один и тот же символ.</li>
+          <li data-i18n-html="trainer.info.steps.fullSet"><b>«Весь набор»</b> — в задание попадают все символы выбранных наборов, каждый по одному разу в случайном порядке; количество циклов при этом не настраивается (рядом с ним показано, сколько символов войдёт в задание), повторения работают как обычно.</li>
+          <li data-i18n-html="trainer.info.steps.everySet">Если включено несколько наборов, каждый из них гарантированно появится в задании хотя бы один раз.</li>
+          <li data-i18n-html="trainer.info.steps.colors">На клавиатуре синим отмечены клавиши из выбранных наборов, серым — остальные. Подсветка меняется сразу при переключении флажков, ещё до «Применить».</li>
+          <li data-i18n-html="trainer.info.steps.showSequence">Если включено «Отображение списка букв», после старта задания клавиши, которые в нём встретятся, подсвечиваются жёлтым.</li>
+          <li data-i18n-html="trainer.info.steps.flashes">Верное нажатие вспыхивает на клавиатуре зелёным, ошибочное — красным; под клавиатурой показывается время нажатия.</li>
+          <li data-i18n-html="trainer.info.steps.hands"><b>«Отображение для рук»</b> — черта внизу клавиши подсказывает, чем её нажимать при слепой печати. «Разделение на половины»: фиолетовая — левой рукой, бирюзовая — правой. «Для каждого пальца»: у каждого пальца свой цвет, от розового (левый мизинец) до малинового (правый мизинец); серая — большие пальцы (пробел, Alt).</li>
+          <li data-i18n-html="trainer.info.steps.extraKeys">На обычной клавиатуре ряд Esc и F1–F12 появляется при включённых «F клавишах» или «Управляющих клавишах», блок Insert/Home/PgUp/Delete/End/PgDn со стрелками — при «Управляющих клавишах». На сплите этих клавиш нет — они обычно на слоях, задание засчитывает их нажатие, но на схеме не показывает.</li>
+          <li data-i18n-html="trainer.info.steps.hint"><b>«Подсказка, где нажимать»</b> — целевая клавиша подсвечивается на схеме вместе с чертой своего пальца: «Сразу» или «Если замешкался» (через 2 секунды, если клавиша ещё не нажата). По умолчанию подсказки нет — клавишу нужно найти самому.</li>
+          <li data-i18n-html="trainer.info.steps.blind"><b>«Скрыть подписи клавиш»</b> — на схеме остаются только формы клавиш (и засечки на А/О): где какой символ, нужно помнить.</li>
+          <li data-i18n-html="trainer.info.steps.mistakes">В конце появится блок «Ошибки при нажатии» — клавиши, которые не удалось нажать с первого раза: им стоит уделить внимание. Кнопка <b>«Повторить ошибки»</b> сразу запускает задание из этих клавиш (каждая — по 3 раза). Ниже — свёрнутая таблица «Подробные результаты»: клавиша, все нажатия, ошибки, среднее время нажатия.</li>
         </ul>
-        <p>Символы набираются в той раскладке, которая выбрана в настройках (Рус / Eng).</p>
-        <p><b>Спец. символы зависят от набора букв:</b> при «Рус» выпадают только символы, которые набираются в русской раскладке (<code>! " % : ; ? * ( ) _ + - = \ / , .</code>); при «Eng» и «Все», а также если набор букв «Откл», — все спец. символы (для тех, что не набираются в русской раскладке, переключитесь на английскую). Регистр букв не учитывается.</p>
-        <p><b>Комбинации клавиш</b> (например, Alt+Shift для смены раскладки, Shift+1 для «!») не засчитываются. Одиночное нажатие Alt, Ctrl, Shift или Win засчитывается в момент отпускания клавиши; время реакции при этом считается от её нажатия.</p>
-        <p>Задание можно остановить кнопкой «Прервать».</p>
-        <p>Настройки сохраняются в браузере при нажатии «Применить» и подставляются автоматически при следующем открытии страницы.</p>
-        <p><b>Советы</b></p>
+        <p data-i18n-html="trainer.info.layout">Символы набираются в той раскладке, которая выбрана в настройках (Рус / Eng).</p>
+        <p data-i18n-html="trainer.info.special"><b>Спец. символы зависят от набора букв:</b> при «Рус» выпадают только символы, которые набираются в русской раскладке (<code>! " % : ; ? * ( ) _ + - = \ / , .</code>); при «Eng» и «Все», а также если набор букв «Откл», — все спец. символы (для тех, что не набираются в русской раскладке, переключитесь на английскую). Регистр букв не учитывается.</p>
+        <p data-i18n-html="trainer.info.combos"><b>Комбинации клавиш</b> (например, Alt+Shift для смены раскладки, Shift+1 для «!») не засчитываются. Одиночное нажатие Alt, Ctrl, Shift или Win засчитывается в момент отпускания клавиши; время реакции при этом считается от её нажатия.</p>
+        <p data-i18n-html="trainer.info.abort">Задание можно остановить кнопкой «Прервать».</p>
+        <p data-i18n-html="trainer.info.saved">Настройки сохраняются в браузере при нажатии «Применить» и подставляются автоматически при следующем открытии страницы.</p>
+        <p data-i18n-html="trainer.info.language">Язык интерфейса выбирается внизу настроек; по умолчанию — язык браузера.</p>
+        <p><b data-i18n="trainer.info.tipsTitle">Советы</b></p>
         <ul>
-          <li><b>Исходное положение рук.</b> Перед началом поставьте пальцы на «домашние» клавиши:
+          <li><span data-i18n-html="trainer.info.tips.handsIntro"><b>Исходное положение рук.</b> Перед началом поставьте пальцы на «домашние» клавиши:</span>
             <ul>
-              <li>левая рука — мизинец, безымянный, средний и указательный на <b>Ф Ы В А</b> (в английской раскладке — A S D F), большой палец — на клавишу слоя 1;</li>
-              <li>правая рука — указательный, средний, безымянный и мизинец на <b>О Л Д Ж</b> (J K L ;), большой палец — на клавишу слоя 2.</li>
+              <li data-i18n-html="trainer.info.tips.handsLeft">левая рука — мизинец, безымянный, средний и указательный на <b>Ф Ы В А</b> (в английской раскладке — A S D F), большой палец — на клавишу слоя 1;</li>
+              <li data-i18n-html="trainer.info.tips.handsRight">правая рука — указательный, средний, безымянный и мизинец на <b>О Л Д Ж</b> (J K L ;), большой палец — на клавишу слоя 2.</li>
             </ul>
-            На обычной клавиатуре большие пальцы лежат на пробеле. Чтобы нажать клавишу, дотянитесь до неё нужным пальцем, а после нажатия сразу верните палец на место — каждое движение начинается из одной точки, и пальцы быстрее его запоминают.
+            <span data-i18n-html="trainer.info.tips.handsOutro">На обычной клавиатуре большие пальцы лежат на пробеле. Чтобы нажать клавишу, дотянитесь до неё нужным пальцем, а после нажатия сразу верните палец на место — каждое движение начинается из одной точки, и пальцы быстрее его запоминают.</span>
           </li>
-          <li>Сначала добейтесь надписи «Без ошибок, молодец!», и только потом ускоряйтесь: скорость придёт сама, когда пальцы запомнят дорогу.</li>
-          <li>Усложняйте постепенно: подсказка «Сразу» → «Если замешкался» → «Никогда» → «Скрыть подписи клавиш».</li>
-          <li>Старайтесь не смотреть на свою клавиатуру — ищите клавишу на экранной.</li>
-          <li>Включите «Отображение для рук» → «Для каждого пальца» и следите, каким пальцем нажимаете.</li>
-          <li>Клавиши из блока «Ошибки при нажатии» пальцы ещё не запомнили — потренируйте их кнопкой «Повторить ошибки».</li>
+          <li data-i18n-html="trainer.info.tips.noMistakes">Сначала добейтесь надписи «Без ошибок, молодец!», и только потом ускоряйтесь: скорость придёт сама, когда пальцы запомнят дорогу.</li>
+          <li data-i18n-html="trainer.info.tips.gradual">Усложняйте постепенно: подсказка «Сразу» → «Если замешкался» → «Никогда» → «Скрыть подписи клавиш».</li>
+          <li data-i18n-html="trainer.info.tips.noLooking">Старайтесь не смотреть на свою клавиатуру — ищите клавишу на экранной.</li>
+          <li data-i18n-html="trainer.info.tips.fingers">Включите «Отображение для рук» → «Для каждого пальца» и следите, каким пальцем нажимаете.</li>
+          <li data-i18n-html="trainer.info.tips.retry">Клавиши из блока «Ошибки при нажатии» пальцы ещё не запомнили — потренируйте их кнопкой «Повторить ошибки».</li>
         </ul>
       </div>
     </details>
 
     <div class="status" id="status">
-      <div class="status-text" id="statusText">Для начала нажмите Пробел</div>
+      <div class="status-text" id="statusText"></div>
       <div class="status-key" id="statusKey"></div>
     </div>
-    <button id="abortBtn" class="abort" hidden>Прервать</button>
+    <button id="abortBtn" class="abort" hidden data-i18n="trainer.abort">Прервать</button>
 
     <div class="layer-tabs trainer-tabs" id="layerTabs" hidden></div>
     <div class="keyboard-wrap">
@@ -162,14 +172,16 @@
 <!-- ================= ПЕРВЫЙ ЗАПУСК: ВЫБОР КЛАВИАТУРЫ ================= -->
 <div class="modal-backdrop" id="welcome" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" tabindex="-1">
-    <h2 class="modal-title" id="welcomeTitle">Какой клавиатурой вы пользуетесь?</h2>
+    <h2 class="modal-title" id="welcomeTitle" data-i18n="welcome.title">Какой клавиатурой вы пользуетесь?</h2>
     <div class="btn-row modal-buttons">
-      <button type="button" class="btn btn-primary" id="welcomeStandard">Классическая</button>
-      <button type="button" class="btn btn-primary" id="welcomeSplit">Сплит</button>
+      <button type="button" class="btn btn-primary" id="welcomeStandard" data-i18n="welcome.standard">Классическая</button>
+      <button type="button" class="btn btn-primary" id="welcomeSplit" data-i18n="welcome.split">Сплит</button>
     </div>
   </div>
 </div>
 
+<!-- Перевод разметки — сразу после её разбора, до загрузки скриптов страницы -->
+<script>JmakI18n.translatePage();</script>
 <script src="js/keyboard.js"></script>
 <script src="js/script.js"></script>
 </body>

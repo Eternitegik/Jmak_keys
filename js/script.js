@@ -74,6 +74,10 @@ const repeatsVal = document.getElementById('repeatsVal');
 const applyBtn = document.getElementById('applyBtn');
 const abortBtn = document.getElementById('abortBtn');
 const themeToggle = document.getElementById('themeToggle');
+const langSelect = document.getElementById('langSelect');
+
+// Строка интерфейса на выбранном языке (js/i18n.js, переводы — в папке localization)
+const t = JmakI18n.t;
 
 // ==================== ТЕМА ====================
 // Инлайн-скрипт в <head> уже применил сохранённую тему до отрисовки страницы
@@ -138,6 +142,11 @@ const IGNORED_KEYS = ['AltGraph', 'Dead', 'Process', 'Unidentified'];
 // Удерживаемые сейчас модификаторы: key → { time, combo, code }
 const heldModifiers = new Map();
 
+// Набор букв по умолчанию — по языку интерфейса: при русском «Рус», при остальных «Eng»
+function defaultLetterSet() {
+  return JmakI18n.locale() === 'ru' ? 'ru' : 'en';
+}
+
 function getLetterPool(letterSet) {
   const ru = 'йцукенгшщзхъфывапролджэячсмитьбюё'.split('');
   const en = 'qwertyuiopasdfghjklzxcvbnm'.split('');
@@ -192,7 +201,7 @@ function escapeHtml(str) {
 // как на экранной клавиатуре (Ctrl, Win, Caps, PgDn, ↑…). У пробела на клавише
 // подписи нет, поэтому «Пробел».
 function displayKey(key) {
-  if (key === ' ') return 'Пробел';
+  if (key === ' ') return t('common.space');
   return JmakKeyboard.keyLabel(key) || key;
 }
 
@@ -214,8 +223,8 @@ function setStatus(text, key = '', kind = '') {
 // выглядят одинаково — подсказываем раскладку. У цифр, знаков и клавиш подсказки нет.
 function layoutTag(sym, settings) {
   if (!settings.letters || settings.letterSet !== 'all') return '';
-  if (/^[а-яё]$/i.test(sym)) return 'Рус';
-  if (/^[a-z]$/i.test(sym)) return 'Eng';
+  if (/^[а-яё]$/i.test(sym)) return t('trainer.layoutTag.ru');
+  if (/^[a-z]$/i.test(sym)) return t('trainer.layoutTag.en');
   return '';
 }
 
@@ -390,10 +399,11 @@ function reloadKeyboardConfig() {
 window.addEventListener('pageshow', e => {
   if (!e.persisted) return;
   // На странице «Вид клавиатуры» могли загрузить настройки из файла — вместе с ними
-  // поменялись настройки тренажёра и тема; тогда проще перезагрузить страницу целиком
+  // поменялись настройки тренажёра, тема и язык; тогда проще перезагрузить страницу целиком
   const themeChanged = (getStoredTheme() === 'light') !==
     (document.documentElement.getAttribute('data-theme') === 'light');
-  if (readStoredSettingsRaw() !== lastSettingsRaw || themeChanged) location.reload();
+  const languageChanged = JmakI18n.preferredLanguage() !== JmakI18n.language();
+  if (readStoredSettingsRaw() !== lastSettingsRaw || themeChanged || languageChanged) location.reload();
   else reloadKeyboardConfig();
 });
 window.addEventListener('storage', e => { if (e.key === JmakKeyboard.CONFIG_KEY) reloadKeyboardConfig(); });
@@ -416,11 +426,11 @@ function updateCyclesControl() {
 }
 
 // Хотя бы один набор должен быть включён: если буквы «Откл» и ни один флажок
-// наборов не стоит, возвращаем «Рус»
+// наборов не стоит, возвращаем набор по умолчанию («Рус» или «Eng» — по языку)
 function validateCheckboxes() {
   const anyChecked = cbSpecial.checked || cbDigits.checked || cbFkeys.checked || cbControl.checked;
   if (letterSetSelect.value === 'off' && !anyChecked) {
-    letterSetSelect.value = 'ru';
+    letterSetSelect.value = defaultLetterSet();
   }
 }
 
@@ -630,11 +640,11 @@ function buildCycleSequence(settings) {
 
 // ==================== ЛОГИКА ИГРЫ ====================
 function getStartKeyName(key) {
-  return key === ' ' ? 'Пробел' : 'Enter';
+  return key === ' ' ? t('common.space') : 'Enter';
 }
 
 function updateStartPrompt() {
-  setStatus(`Для начала нажмите ${getStartKeyName(currentStartKey)}`);
+  setStatus(t('trainer.status.start', { key: getStartKeyName(currentStartKey) }));
 }
 
 function clearTimers() {
@@ -663,12 +673,12 @@ function beginCountdown(symbols = null) {
   jmyakPanel.scrollTop = 0;
   countdownValue = COUNTDOWN_SECONDS;
   // Цифра отсчёта — во второй строке, там, где появится первый символ
-  setStatus('Приготовьтесь', String(countdownValue), 'countdown');
+  setStatus(t('trainer.status.ready'), String(countdownValue), 'countdown');
 
   countdownInterval = setInterval(() => {
     countdownValue--;
     if (countdownValue > 0) {
-      setStatus('Приготовьтесь', String(countdownValue), 'countdown');
+      setStatus(t('trainer.status.ready'), String(countdownValue), 'countdown');
     } else {
       clearInterval(countdownInterval);
       countdownInterval = null;
@@ -682,6 +692,7 @@ function startTask() {
   inputLocked = false;
   heldModifiers.clear();
   applyBtn.disabled = true;
+  langSelect.disabled = true;
 
   // Фиксируем настройки на время задания
   runSettings = Object.assign({}, appliedSettings);
@@ -719,6 +730,7 @@ function abortTask() {
   heldModifiers.clear();
   state = 'IDLE';
   applyBtn.disabled = false;
+  langSelect.disabled = false;
   abortBtn.hidden = true;
   progressEl.textContent = '';
   setFeedback('');
@@ -740,13 +752,15 @@ function nextSymbol() {
   // Символ на другом слое сплита — показываем этот слой и называем его в подсказке
   showLayerFor(currentSymbol);
   scheduleHint();
-  setStatus('Жми' + symbolHints(currentSymbol, runSettings), displayKey(currentSymbol), 'target');
+  setStatus(t('trainer.status.press') + symbolHints(currentSymbol, runSettings), displayKey(currentSymbol), 'target');
   // Строка под клавиатурой не очищается: результат прошлого нажатия виден до следующего
 
   const cycle = Math.floor(currentIndex / runSettings.repeats) + 1;
   const repeat = (currentIndex % runSettings.repeats) + 1;
   // Число циклов берём из задания: при «Весь набор» оно не равно ползунку
-  progressEl.textContent = `Цикл ${cycle}/${taskEvents.length}, повтор ${repeat}/${runSettings.repeats}`;
+  progressEl.textContent = t('trainer.progress', {
+    cycle, cycles: taskEvents.length, repeat, repeats: runSettings.repeats
+  });
 }
 
 function finishTask() {
@@ -754,8 +768,9 @@ function finishTask() {
   inputLocked = false;
   heldModifiers.clear();
   applyBtn.disabled = false;
+  langSelect.disabled = false;
   abortBtn.hidden = true;
-  setStatus('Задание выполнено!');
+  setStatus(t('trainer.status.done'));
   setFeedback('');
   progressEl.textContent = '';
   shownLayer = 0;
@@ -787,14 +802,16 @@ function missedSymbols() {
   return missed;
 }
 
+// Тексты перевода вставляются как есть (это свои файлы), клавиши — экранированными
 function renderMistakes(missed) {
+  const keys = missed
+    .map(sym => `<b class="mistakes-key">${escapeHtml(displayKey(sym) + symbolHints(sym, runSettings))}</b>`)
+    .join(', ');
   const text = missed.length === 0
-    ? '<p class="mistakes-none">Без ошибок, молодец!</p>'
-    : '<p>Клавиши, которые были нажаты не с первого раза: ' +
-      missed.map(sym => `<b class="mistakes-key">${escapeHtml(displayKey(sym) + symbolHints(sym, runSettings))}</b>`).join(', ') +
-      '. Уделите им внимание.</p>' +
-      '<button type="button" class="btn btn-primary" id="retryBtn">Повторить ошибки</button>';
-  return `<div class="mistakes"><h3>Ошибки при нажатии</h3>${text}</div>`;
+    ? `<p class="mistakes-none">${t('trainer.results.noMistakes')}</p>`
+    : `<p>${t('trainer.results.mistakes', { keys })}</p>` +
+      `<button type="button" class="btn btn-primary" id="retryBtn">${t('trainer.results.retry')}</button>`;
+  return `<div class="mistakes"><h3>${t('trainer.results.mistakesTitle')}</h3>${text}</div>`;
 }
 
 // «Повторить ошибки»: каждая клавиша с ошибкой RETRY_ROUNDS раз, круги перемешаны,
@@ -815,9 +832,13 @@ function buildRetrySequence(symbols) {
 // таблица всех нажатий
 function renderResults() {
   const missed = missedSymbols();
+  const columns = [
+    t('trainer.results.colNumber'), t('trainer.results.colTarget'), t('trainer.results.colPresses'),
+    t('trainer.results.colErrors'), t('trainer.results.colAvgTime')
+  ].map(text => `<th>${text}</th>`).join('');
   let html = renderMistakes(missed) +
-    '<details class="info results-details"><summary>Подробные результаты</summary>' +
-    '<div class="results-body"><table><thead><tr><th>№</th><th>Целевая клавиша</th><th>Нажатия</th><th>Ошибки</th><th>Среднее время (мс)</th></tr></thead><tbody>';
+    `<details class="info results-details"><summary>${t('trainer.results.details')}</summary>` +
+    `<div class="results-body"><table><thead><tr>${columns}</tr></thead><tbody>`;
   taskEvents.forEach((item, idx) => {
     const events = item.events;
     const errors = events.filter(e => !e.isCorrect).length;
@@ -825,7 +846,7 @@ function renderResults() {
     const avgTime = events.length ? Math.round(totalTime / events.length) : 0;
     const pressesHtml = events.map(e => {
       const cls = e.isCorrect ? 'event-correct' : 'event-wrong';
-      return `<span class="${cls}">${escapeHtml(displayKey(e.key))} (${e.time} мс)</span>`;
+      return `<span class="${cls}">${t('trainer.results.press', { key: escapeHtml(displayKey(e.key)), time: e.time })}</span>`;
     }).join(', ');
     html += `<tr>
       <td>${idx + 1}</td>
@@ -878,7 +899,7 @@ function handlePress(key, time, code = '', shift = false) {
     // не той клавишей, где он стоит в US-раскладке. Если её нет на клавиатуре
     // (цифровой блок) или код неизвестен — клавишу, на которой стоит символ.
     flashKeys(pressedPos ? [pressedPos] : symbolPositions(currentSymbol, runSettings), 'kb-correct', ADVANCE_DELAY_MS);
-    setFeedback(`${time} мс`, 'ok');
+    setFeedback(t('trainer.feedback.time', { time }), 'ok');
     cycle.events.push({ key, time, isCorrect: true });
 
     currentIndex++;
@@ -888,7 +909,7 @@ function handlePress(key, time, code = '', shift = false) {
     // но ошибка всё равно показывается строкой под клавиатурой
     const wrongPositions = pressedPos ? [pressedPos] : code ? [] : symbolPositions(key, runSettings);
     flashKeys(wrongPositions, 'kb-wrong', WRONG_FLASH_MS);
-    setFeedback(`✗ ${feedbackKey(key)} · ${time} мс`, 'bad');
+    setFeedback(t('trainer.feedback.wrong', { key: feedbackKey(key), time }), 'bad');
     cycle.events.push({ key, time, isCorrect: false });
   }
 }
@@ -987,7 +1008,7 @@ const appEl = document.querySelector('.app');
 function isFirstVisit() {
   if (!storageOk) return false; // ответ не сохранится — окно появлялось бы каждый раз
   try {
-    return [JmakKeyboard.CONFIG_KEY, SETTINGS_STORAGE_KEY, 'jmak-theme']
+    return [JmakKeyboard.CONFIG_KEY, SETTINGS_STORAGE_KEY, 'jmak-theme', JmakI18n.STORAGE_KEY]
       .every(key => localStorage.getItem(key) === null);
   } catch (e) {
     return false;
@@ -1013,6 +1034,36 @@ function chooseKeyboard(type) {
 document.getElementById('welcomeStandard').addEventListener('click', () => chooseKeyboard('standard'));
 document.getElementById('welcomeSplit').addEventListener('click', () => chooseKeyboard('split'));
 
+// ==================== ЯЗЫК ====================
+// Языки — переводы из папки localization (см. js/i18n.js). Язык меняется без перезагрузки:
+// разметку переводит JmakI18n.setLanguage, а то, что строится из JS (статус, итоги
+// задания, вкладки слоёв), перерисовываем здесь. Во время задания список недоступен,
+// как и «Применить»; во время отсчёта статус обновит следующий тик.
+function fillLanguageSelect() {
+  JmakI18n.languages().forEach(({ code, name }) => {
+    const option = document.createElement('option');
+    option.value = code;
+    option.textContent = name;
+    langSelect.appendChild(option);
+  });
+  langSelect.value = JmakI18n.language();
+}
+
+langSelect.addEventListener('change', () => {
+  JmakI18n.setLanguage(langSelect.value);
+  if (state === 'FINISHED') {
+    renderResults();
+    // «Задание выполнено!» держится 1,5 с, потом сменяется подсказкой о старте
+    if (promptTimeout) setStatus(t('trainer.status.done'));
+    else updateStartPrompt();
+  } else if (state === 'IDLE') {
+    updateStartPrompt();
+  }
+  refreshKeyboard();
+  // Фокус снимаем, чтобы Пробел/Enter запускали задание
+  langSelect.blur();
+});
+
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 // Сначала переносим в форму настройки, сохранённые в localStorage (если они
 // есть), затем приводим DOM в согласованное состояние (браузер мог восстановить
@@ -1020,10 +1071,12 @@ document.getElementById('welcomeSplit').addEventListener('click', () => chooseKe
 // и обновляем интерфейс.
 const storedSettings = loadStoredSettings();
 if (storedSettings) applySettingsToDom(storedSettings);
+else letterSetSelect.value = defaultLetterSet(); // настроек ещё нет — набор букв по языку
 validateCheckboxes();
 updateSettingsDisplay();
 appliedSettings = readSettingsFromDom();
 runSettings = appliedSettings;
+fillLanguageSelect();
 updateStartPrompt();
 refreshKeyboard();
 if (isFirstVisit()) openWelcome();

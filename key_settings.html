@@ -14,40 +14,46 @@
     } catch (e) {}
   })();
 </script>
-<title>Жмяк — вид клавиатуры</title>
+<!-- Переводы: модуль локализации, затем список языков (он подключает файлы переводов).
+     Язык выбирается на странице тренажёра -->
+<script src="js/i18n.js"></script>
+<script src="localization/languages.js"></script>
+<title data-i18n="keySettings.title">Жмяк — вид клавиатуры</title>
 <link rel="stylesheet" href="style/style.css">
 </head>
 <body>
 
+<!-- Тексты разметки — на русском как запасной вариант; при загрузке их заменяет перевод
+     по ключам data-i18n (см. js/i18n.js) -->
 <div class="page">
   <header class="page-header">
-    <a class="nav-link" href="index.html">← К тренажёру</a>
-    <h1>Вид клавиатуры</h1>
+    <a class="nav-link" href="index.html" data-i18n="keySettings.back">← К тренажёру</a>
+    <h1 data-i18n="keySettings.heading">Вид клавиатуры</h1>
     <p class="page-note">
-      Настройки сохраняются сразу и применяются в тренажёре.
+      <span data-i18n="keySettings.note">Настройки сохраняются сразу и применяются в тренажёре.</span>
       <span class="save-note" id="saveNote" aria-live="polite"></span>
     </p>
   </header>
 
   <div class="storage-warning" id="storageWarning" role="alert" hidden>
-    <p><b>Браузер не даёт сохранять данные.</b> Изменения на этой странице не попадут в тренажёр и пропадут при перезагрузке. Разрешите этому сайту сохранять файлы cookie и данные сайтов в настройках браузера и перезагрузите страницу.</p>
-    <button type="button" class="storage-warning-close" id="storageWarningClose" aria-label="Скрыть предупреждение">✕</button>
+    <p data-i18n-html="storage.keySettings"><b>Браузер не даёт сохранять данные.</b> Изменения на этой странице не попадут в тренажёр и пропадут при перезагрузке. Разрешите этому сайту сохранять файлы cookie и данные сайтов в настройках браузера и перезагрузите страницу.</p>
+    <button type="button" class="storage-warning-close" id="storageWarningClose" aria-label="Скрыть предупреждение" data-i18n-attr="aria-label:storage.close">✕</button>
   </div>
 
   <section class="card">
-    <h2>Тип клавиатуры</h2>
-    <label class="radio"><input type="radio" name="kbType" value="standard" checked><span>Стандартная QWERTY</span></label>
-    <label class="radio"><input type="radio" name="kbType" value="split"><span>Сплит клавиатура</span></label>
+    <h2 data-i18n="keySettings.type.title">Тип клавиатуры</h2>
+    <label class="radio"><input type="radio" name="kbType" value="standard" checked><span data-i18n="keySettings.type.standard">Стандартная QWERTY</span></label>
+    <label class="radio"><input type="radio" name="kbType" value="split"><span data-i18n="keySettings.type.split">Сплит клавиатура</span></label>
   </section>
 
   <div id="splitBlock" hidden>
     <section class="card">
-      <h2>Форма сплита</h2>
+      <h2 data-i18n="keySettings.shape.title">Форма сплита</h2>
       <div class="field-row">
         <div class="field">
-          <label class="field-label" for="preset">Пресет</label>
+          <label class="field-label" for="preset" data-i18n="keySettings.shape.preset">Пресет</label>
           <select class="select" id="preset">
-            <option value="">Своя форма</option>
+            <option value="" data-i18n="keySettings.shape.custom">Своя форма</option>
             <option value="corne">Corne (3×6 + 3)</option>
             <option value="sweep">Ferris Sweep (3×5 + 2)</option>
             <option value="iris">Iris (4×6 + 4)</option>
@@ -55,46 +61,46 @@
           </select>
         </div>
         <div class="field">
-          <label class="field-label" for="stagger">Смещение столбцов</label>
+          <label class="field-label" for="stagger" data-i18n="keySettings.shape.stagger">Смещение столбцов</label>
           <select class="select" id="stagger">
-            <option value="none">Ровно (ортолинейная)</option>
-            <option value="moderate">Умеренное</option>
-            <option value="strong">Сильное</option>
+            <option value="none" data-i18n="keySettings.shape.staggerNone">Ровно (ортолинейная)</option>
+            <option value="moderate" data-i18n="keySettings.shape.staggerModerate">Умеренное</option>
+            <option value="strong" data-i18n="keySettings.shape.staggerStrong">Сильное</option>
           </select>
         </div>
       </div>
-      <label class="check"><input type="checkbox" id="sameHalves" checked><span>Половины одинаковые</span></label>
+      <label class="check"><input type="checkbox" id="sameHalves" checked><span data-i18n="keySettings.shape.same">Половины одинаковые</span></label>
     </section>
 
     <div class="split-halves">
       <section class="card" id="leftCard">
-        <h3>Левая половина</h3>
+        <h3 data-i18n="keySettings.shape.left">Левая половина</h3>
         <div class="slider">
-          <div class="slider-head"><span>Столбцы (6 — с внешним, 7 — ещё и с внутренним)</span><b id="leftColsVal">6</b></div>
+          <div class="slider-head"><span data-i18n="keySettings.shape.cols">Столбцы (6 — с внешним, 7 — ещё и с внутренним)</span><b id="leftColsVal">6</b></div>
           <input type="range" id="leftCols" min="5" max="7" step="1" value="6" data-label="leftColsVal">
         </div>
         <div class="slider">
-          <div class="slider-head"><span>Ряды (4 — с рядом цифр)</span><b id="leftRowsVal">3</b></div>
+          <div class="slider-head"><span data-i18n="keySettings.shape.rows">Ряды (4 — с рядом цифр)</span><b id="leftRowsVal">3</b></div>
           <input type="range" id="leftRows" min="3" max="4" step="1" value="3" data-label="leftRowsVal">
         </div>
         <div class="slider">
-          <div class="slider-head"><span>Клавиши под большой палец</span><b id="leftThumbsVal">3</b></div>
+          <div class="slider-head"><span data-i18n="keySettings.shape.thumbs">Клавиши под большой палец</span><b id="leftThumbsVal">3</b></div>
           <input type="range" id="leftThumbs" min="0" max="6" step="1" value="3" data-label="leftThumbsVal">
         </div>
       </section>
 
       <section class="card" id="rightCard">
-        <h3>Правая половина</h3>
+        <h3 data-i18n="keySettings.shape.right">Правая половина</h3>
         <div class="slider">
-          <div class="slider-head"><span>Столбцы (6 — с внешним, 7 — ещё и с внутренним)</span><b id="rightColsVal">6</b></div>
+          <div class="slider-head"><span data-i18n="keySettings.shape.cols">Столбцы (6 — с внешним, 7 — ещё и с внутренним)</span><b id="rightColsVal">6</b></div>
           <input type="range" id="rightCols" min="5" max="7" step="1" value="6" data-label="rightColsVal">
         </div>
         <div class="slider">
-          <div class="slider-head"><span>Ряды (4 — с рядом цифр)</span><b id="rightRowsVal">3</b></div>
+          <div class="slider-head"><span data-i18n="keySettings.shape.rows">Ряды (4 — с рядом цифр)</span><b id="rightRowsVal">3</b></div>
           <input type="range" id="rightRows" min="3" max="4" step="1" value="3" data-label="rightRowsVal">
         </div>
         <div class="slider">
-          <div class="slider-head"><span>Клавиши под большой палец</span><b id="rightThumbsVal">3</b></div>
+          <div class="slider-head"><span data-i18n="keySettings.shape.thumbs">Клавиши под большой палец</span><b id="rightThumbsVal">3</b></div>
           <input type="range" id="rightThumbs" min="0" max="6" step="1" value="3" data-label="rightThumbsVal">
         </div>
       </section>
@@ -104,7 +110,7 @@
   <section class="card">
     <h2 id="previewTitle">Предпросмотр</h2>
     <div class="layer-tabs" id="layerTabs" hidden></div>
-    <label class="check"><input type="checkbox" id="showFingers"><span>Показать пальцы</span></label>
+    <label class="check"><input type="checkbox" id="showFingers"><span data-i18n="keySettings.preview.fingers">Показать пальцы</span></label>
     <div class="keyboard-wrap">
       <div class="keyboard" id="preview" aria-hidden="true"></div>
     </div>
@@ -113,16 +119,16 @@
     <div id="layoutTools" hidden>
       <label class="check">
         <input type="checkbox" id="separateSymbols">
-        <span>Цифры и спецсимволы на разных клавишах (Shift + цифра не даёт символ)</span>
+        <span data-i18n="keySettings.layout.separateSymbols">Цифры и спецсимволы на разных клавишах (Shift + цифра не даёт символ)</span>
       </label>
       <div class="btn-row">
         <button type="button" class="btn btn-primary" id="learnBtn">Записать слой</button>
-        <button type="button" class="btn" id="addLayerBtn">+ Слой</button>
-        <button type="button" class="btn" id="renameLayerBtn">Переименовать слой</button>
-        <button type="button" class="btn" id="removeLayerBtn">Удалить слой</button>
-        <button type="button" class="btn" id="resetLayoutBtn">Сбросить раскладку</button>
+        <button type="button" class="btn" id="addLayerBtn" data-i18n="keySettings.layout.addLayer">+ Слой</button>
+        <button type="button" class="btn" id="renameLayerBtn" data-i18n="keySettings.layout.rename">Переименовать слой</button>
+        <button type="button" class="btn" id="removeLayerBtn" data-i18n="keySettings.layout.remove">Удалить слой</button>
+        <button type="button" class="btn" id="resetLayoutBtn" data-i18n="keySettings.layout.reset">Сбросить раскладку</button>
       </div>
-      <p class="page-note preview-note">
+      <p class="page-note preview-note" data-i18n="keySettings.layout.note">
         «Записать слой» по очереди подсвечивает клавиши схемы — нажимайте их на своей
         клавиатуре, и тренажёр запомнит, что где находится. Чтобы перезаписать одну клавишу,
         кликните по ней на схеме. Незаписанные клавиши основного слоя остаются как на обычной
@@ -137,15 +143,15 @@
       <div class="wizard-text" id="wizardText"></div>
       <div class="wizard-last" id="wizardLast" aria-live="polite"></div>
       <div class="btn-row">
-        <button type="button" class="btn" id="wzBack">← Назад</button>
-        <button type="button" class="btn" id="wzSame">Как на основном</button>
-        <button type="button" class="btn" id="wzEmpty">Пусто</button>
-        <select class="select wizard-select" id="wzLayer" aria-label="Клавиша включает слой"></select>
-        <button type="button" class="btn btn-primary" id="wzDone">Готово</button>
+        <button type="button" class="btn" id="wzBack" data-i18n="keySettings.wizard.back">← Назад</button>
+        <button type="button" class="btn" id="wzSame" data-i18n="keySettings.wizard.sameButton">Как на основном</button>
+        <button type="button" class="btn" id="wzEmpty" data-i18n="keySettings.wizard.emptyButton">Пусто</button>
+        <select class="select wizard-select" id="wzLayer" aria-label="Клавиша включает слой" data-i18n-attr="aria-label:keySettings.wizard.layerSelectLabel"></select>
+        <button type="button" class="btn btn-primary" id="wzDone" data-i18n="keySettings.wizard.done">Готово</button>
       </div>
     </div>
 
-    <p class="page-note preview-note" id="splitNote" hidden>
+    <p class="page-note preview-note" id="splitNote" hidden data-i18n="keySettings.preview.splitNote">
       На основном слое в углах клавиш мелко видно, что на них на слоях 1 и 2. В тренажёре,
       если символ лежит на другом слое, подсказка назовёт слой («Жми (Символы)»),
       клавиатура сама его покажет, а клавиша слоя будет обведена — дайте слоям понятные
@@ -154,20 +160,22 @@
   </section>
 
   <section class="card">
-    <h2>Резервная копия</h2>
-    <p class="page-note">
+    <h2 data-i18n="keySettings.backup.title">Резервная копия</h2>
+    <p class="page-note" data-i18n="keySettings.backup.note">
       Сохраните настройки в файл, чтобы перенести их в другой браузер или на другой компьютер:
-      вид клавиатуры, записанная раскладка со слоями, настройки тренажёра и тема.
+      вид клавиатуры, записанная раскладка со слоями, настройки тренажёра, тема и язык.
     </p>
     <div class="btn-row">
-      <button type="button" class="btn btn-primary" id="exportBtn">Сохранить в файл</button>
-      <button type="button" class="btn" id="importBtn">Загрузить из файла</button>
+      <button type="button" class="btn btn-primary" id="exportBtn" data-i18n="keySettings.backup.export">Сохранить в файл</button>
+      <button type="button" class="btn" id="importBtn" data-i18n="keySettings.backup.import">Загрузить из файла</button>
       <input type="file" id="importFile" accept=".json,application/json" hidden>
     </div>
     <p class="page-note backup-status" id="backupStatus" aria-live="polite"></p>
   </section>
 </div>
 
+<!-- Перевод разметки — сразу после её разбора, до загрузки скриптов страницы -->
+<script>JmakI18n.translatePage();</script>
 <script src="js/keyboard.js"></script>
 <script src="js/key_settings.js"></script>
 </body>

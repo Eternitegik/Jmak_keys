@@ -63,6 +63,9 @@
   const importFile = $('importFile');
   const backupStatus = $('backupStatus');
 
+  // Строка интерфейса на выбранном языке (js/i18n.js, переводы — в папке localization)
+  const t = JmakI18n.t;
+
   // ---------- Состояние ----------
   let config = JmakKeyboard.loadConfig(); // { type, split, keymap } — то, что сохранено
   let selectedLayer = 0;                  // слой, показанный на схеме
@@ -76,7 +79,8 @@
   // Ползунок половины: ('left', 'cols') → #leftCols
   const slider = (side, field) => $(side + field[0].toUpperCase() + field.slice(1));
 
-  // Подписи на клавишах предпросмотра — по набору букв, применённому в тренажёре
+  // Подписи на клавишах предпросмотра — по набору букв, применённому в тренажёре; без
+  // сохранённых настроек — как набор по умолчанию в тренажёре (по языку интерфейса)
   function labelMode() {
     try {
       const s = JSON.parse(localStorage.getItem('jmak-settings'));
@@ -85,7 +89,7 @@
     } catch (e) {
       // нет сохранённых настроек тренажёра — подписи по умолчанию
     }
-    return 'ru';
+    return JmakI18n.locale() === 'ru' ? 'ru' : 'en';
   }
 
   function readHalf(side) {
@@ -139,15 +143,18 @@
   }
 
   // ---------- Записанная раскладка ----------
+  // У слоя хранится только своё название; пустое — стандартное («Слой 1» на текущем
+  // языке, см. JmakKeyboard.layerName)
   const isSplit = () => config.type === 'split';
-  const layers = () => (config.keymap ? config.keymap.layers : [{ name: JmakKeyboard.layerName(0), keys: {} }]);
-  const layerTitle = i => `«${(layers()[i] || {}).name || JmakKeyboard.layerName(i)}»`;
+  const layers = () => (config.keymap ? config.keymap.layers : [{ name: '', keys: {} }]);
+  const layerLabel = i => (layers()[i] || {}).name || JmakKeyboard.layerName(i);
+  const layerTitle = i => t('keySettings.quoted', { name: layerLabel(i) });
 
   // Создаёт записанную раскладку и слои до n включительно
   function ensureLayer(n) {
-    if (!config.keymap) config.keymap = { layers: [{ name: JmakKeyboard.layerName(0), keys: {} }] };
+    if (!config.keymap) config.keymap = { layers: [{ name: '', keys: {} }] };
     const list = config.keymap.layers;
-    while (list.length <= n) list.push({ name: JmakKeyboard.layerName(list.length), keys: {} });
+    while (list.length <= n) list.push({ name: '', keys: {} });
   }
 
   function getEntry(layer, pos) {
@@ -190,7 +197,7 @@
 
   function persist() {
     const ok = JmakKeyboard.saveConfig(config);
-    showNote(ok ? 'Сохранено' : 'Не удалось сохранить: хранилище браузера недоступно', ok);
+    showNote(ok ? t('keySettings.saved') : t('keySettings.saveFailed'), ok);
   }
 
   // Браузер может запретить сайту сохранять данные — тогда изменения не попадут в
@@ -233,7 +240,7 @@
       const tab = document.createElement('button');
       tab.type = 'button';
       tab.className = 'layer-tab' + (i === selectedLayer ? ' active' : '');
-      tab.textContent = l.name;
+      tab.textContent = layerLabel(i);
       tab.addEventListener('click', () => {
         stopCapture();
         selectedLayer = i;
@@ -246,11 +253,11 @@
 
   function syncTools() {
     const split = isSplit();
-    previewTitle.textContent = split ? 'Предпросмотр и раскладка' : 'Предпросмотр';
+    previewTitle.textContent = split ? t('keySettings.preview.titleSplit') : t('keySettings.preview.title');
     splitNote.hidden = !split;
     layoutTools.hidden = !split || !!capture;
     const count = layers().length;
-    learnBtn.textContent = `Записать слой ${layerTitle(selectedLayer)}`;
+    learnBtn.textContent = t('keySettings.layout.learn', { layer: layerTitle(selectedLayer) });
     addLayerBtn.disabled = count >= JmakKeyboard.MAX_LAYERS;
     renameLayerBtn.disabled = selectedLayer === 0;
     removeLayerBtn.disabled = selectedLayer === 0 || selectedLayer !== count - 1;
@@ -258,7 +265,7 @@
   }
 
   function describe(key) {
-    if (key === ' ') return 'Пробел';
+    if (key === ' ') return t('common.space');
     const label = JmakKeyboard.keyLabel(key) || key;
     return label.length === 1 ? label.toUpperCase() : label;
   }
@@ -268,11 +275,11 @@
     if (!capture) return;
     const onBase = capture.layer === 0;
     wizardTitle.textContent = capture.mode === 'walk'
-      ? `Слой ${layerTitle(capture.layer)} — клавиша ${capture.index + 1} из ${capture.order.length}`
-      : `Слой ${layerTitle(capture.layer)} — одна клавиша`;
-    wizardText.textContent = onBase
-      ? 'Нажмите подсвеченную клавишу на своей клавиатуре. Если она ничего не печатает — это переключатель слоя или пустая клавиша: выберите «Это клавиша слоя…» или «Пусто».'
-      : 'Включите этот слой (удерживайте его клавишу — она обведена цветом слоя) и нажмите подсвеченную клавишу. Если на этом слое она такая же, как на основном, — «Как на основном», если ничем не занята — «Пусто».';
+      ? t('keySettings.wizard.titleWalk', {
+        layer: layerTitle(capture.layer), index: capture.index + 1, total: capture.order.length
+      })
+      : t('keySettings.wizard.titleSingle', { layer: layerTitle(capture.layer) });
+    wizardText.textContent = onBase ? t('keySettings.wizard.textBase') : t('keySettings.wizard.textLayer');
     wizardLast.textContent = capture.last;
     wzBack.disabled = capture.mode !== 'walk' || capture.index === 0;
     // «Как на основном» имеет смысл только на остальных слоях
@@ -286,12 +293,14 @@
       o.textContent = text;
       wzLayer.appendChild(o);
     };
-    option('', 'Это клавиша слоя…');
+    option('', t('keySettings.wizard.layerSelect'));
     const count = layers().length;
     for (let n = 1; n < count; n++) {
-      if (n !== capture.layer) option(String(n), layers()[n].name);
+      if (n !== capture.layer) option(String(n), layerLabel(n));
     }
-    if (count < JmakKeyboard.MAX_LAYERS) option(String(count), `${JmakKeyboard.layerName(count)} (новый)`);
+    if (count < JmakKeyboard.MAX_LAYERS) {
+      option(String(count), t('keySettings.wizard.newLayer', { layer: JmakKeyboard.layerName(count) }));
+    }
   }
 
   // Полное обновление страницы по состоянию
@@ -331,13 +340,13 @@
   function commit(entry, lastText) {
     setEntry(capture.layer, capture.order[capture.index], entry);
     persist();
-    capture.last = 'Записано: ' + lastText;
+    capture.last = t('keySettings.wizard.recorded', { what: lastText });
     if (capture.mode === 'single' || capture.index >= capture.order.length - 1) {
       const finishedWalk = capture.mode === 'walk';
       const title = layerTitle(capture.layer);
       stopCapture();
       refresh();
-      if (finishedWalk) showNote(`Слой ${title} записан`, true);
+      if (finishedWalk) showNote(t('keySettings.layout.recorded', { layer: title }), true);
       return;
     }
     capture.index++;
@@ -402,19 +411,20 @@
     refresh();
   });
 
-  // Название слоя видно на вкладках и в подсказке тренажёра «Жми (Символы)»
+  // Название слоя видно на вкладках и в подсказке тренажёра «Жми (Символы)». Пустое
+  // название — стандартное
   renameLayerBtn.addEventListener('click', () => {
     const layer = config.keymap && config.keymap.layers[selectedLayer];
     if (!layer || selectedLayer === 0) return;
-    const name = prompt('Название слоя (например, «Символы» или «Цифры»):', layer.name);
+    const name = prompt(t('keySettings.layout.renamePrompt'), layerLabel(selectedLayer));
     if (name === null) return;
-    layer.name = name.trim().slice(0, 20) || JmakKeyboard.layerName(selectedLayer);
+    layer.name = name.trim().slice(0, 20);
     persist();
     refresh();
   });
 
   removeLayerBtn.addEventListener('click', () => {
-    if (!confirm(`Удалить слой ${layerTitle(selectedLayer)} и всё, что на нём записано?`)) return;
+    if (!confirm(t('keySettings.layout.removeConfirm', { layer: layerTitle(selectedLayer) }))) return;
     removeLastLayer();
     selectedLayer = config.keymap.layers.length - 1;
     persist();
@@ -422,7 +432,7 @@
   });
 
   resetLayoutBtn.addEventListener('click', () => {
-    if (!confirm('Сбросить записанную раскладку? Клавиши вернутся к обычной QWERTY, слои удалятся.')) return;
+    if (!confirm(t('keySettings.layout.resetConfirm'))) return;
     config.keymap = null;
     selectedLayer = 0;
     persist();
@@ -457,13 +467,13 @@
 
   // «Пусто» — клавиша ничем не занята (на слое — не повторяет основной слой)
   wzEmpty.addEventListener('click', () => {
-    if (capture) commit({ empty: true }, 'пусто');
+    if (capture) commit({ empty: true }, t('keySettings.wizard.empty'));
     wzEmpty.blur();
   });
 
   // «Как на основном» — убрать запись слоя: клавиша работает как на основном слое
   wzSame.addEventListener('click', () => {
-    if (capture && capture.layer > 0) commit(null, 'как на основном');
+    if (capture && capture.layer > 0) commit(null, t('keySettings.wizard.same'));
     wzSame.blur();
   });
 
@@ -478,7 +488,7 @@
     const entry = existing && existing.code
       ? { code: existing.code, shift: existing.shift, key: existing.key, layer: n }
       : { layer: n };
-    commit(entry, `клавиша слоя ${layerTitle(n)}`);
+    commit(entry, t('keySettings.wizard.layerKey', { layer: layerTitle(n) }));
   });
 
   wzDone.addEventListener('click', () => {
@@ -487,8 +497,9 @@
   });
 
   // ---------- Резервная копия ----------
-  // Файл: { app: 'jmak-keys', version, exported, keyboard, settings, theme } — вид
-  // клавиатуры с раскладкой и слоями, применённые настройки тренажёра и тема
+  // Файл: { app: 'jmak-keys', version, exported, keyboard, settings, theme, language } —
+  // вид клавиатуры с раскладкой и слоями, применённые настройки тренажёра, тема и язык
+  // интерфейса (код перевода; в файлах старых версий его нет)
   const BACKUP_APP = 'jmak-keys';
   const BACKUP_VERSION = 1;
   const SETTINGS_KEY = 'jmak-settings'; // настройки тренажёра (script.js)
@@ -522,7 +533,8 @@
       exported: new Date().toISOString(),
       keyboard: JmakKeyboard.normalizeConfig(config),
       settings: settings && typeof settings === 'object' ? settings : null,
-      theme: theme === 'light' || theme === 'dark' ? theme : null
+      theme: theme === 'light' || theme === 'dark' ? theme : null,
+      language: JmakI18n.language()
     };
     const fileName = `jmak-keys-${data.exported.slice(0, 10)}.json`;
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -534,7 +546,7 @@
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setBackupStatus(`Сохранено в файл ${fileName}`, true);
+    setBackupStatus(t('keySettings.backup.exported', { file: fileName }), true);
   }
 
   function importBackup(text) {
@@ -545,10 +557,10 @@
       // ниже — общее сообщение
     }
     if (!data || data.app !== BACKUP_APP || !data.keyboard || typeof data.keyboard !== 'object') {
-      setBackupStatus('Это не файл настроек Жмяка — настройки не изменены', false);
+      setBackupStatus(t('keySettings.backup.notBackup'), false);
       return;
     }
-    if (!confirm('Заменить текущие настройки клавиатуры, раскладку и настройки тренажёра данными из файла?')) return;
+    if (!confirm(t('keySettings.backup.importConfirm'))) return;
 
     stopCapture();
     config = JmakKeyboard.normalizeConfig(data.keyboard);
@@ -566,12 +578,12 @@
     } catch (e) {
       ok = false;
     }
+    // Язык — если такой перевод есть; разметку переводит setLanguage, остальное — refresh
+    if (typeof data.language === 'string') JmakI18n.setLanguage(data.language);
     selectedLayer = 0;
     writeForm(config);
     refresh();
-    setBackupStatus(ok
-      ? 'Настройки загружены из файла'
-      : 'Не удалось сохранить настройки: хранилище браузера недоступно', ok);
+    setBackupStatus(ok ? t('keySettings.backup.imported') : t('keySettings.backup.importSaveFailed'), ok);
   }
 
   exportBtn.addEventListener('click', () => {
@@ -590,7 +602,7 @@
     if (!file) return;
     file.text()
       .then(importBackup)
-      .catch(() => setBackupStatus('Не удалось прочитать файл', false));
+      .catch(() => setBackupStatus(t('keySettings.backup.readFailed'), false));
   });
 
   // Начальное состояние — из сохранённых настроек. Браузер (например, Firefox) может

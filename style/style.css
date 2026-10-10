@@ -449,6 +449,22 @@ input[type="range"]:disabled {
   outline-offset: 2px;
 }
 
+/* ----- Выбор языка — строкой под переключателем темы, в том же виде ----- */
+.lang-toggle {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.lang-toggle .select {
+  width: auto;
+  padding: 3px 8px;
+  font-size: 14px;
+}
+
 /* ===== ПРАВЫЙ БЛОК ===== */
 .jmyak {
   flex: 1;

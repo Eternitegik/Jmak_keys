@@ -351,7 +351,8 @@ const JmakKeyboard = (function () {
   //              left: { cols, rows, thumbs }, right: { cols, rows, thumbs } },
   //     keymap: null | { layers: [{ name, keys: { [pos]: запись } }] },
   //     separateSymbols }
-  // same — половины одинаковые (правая повторяет левую).
+  // same — половины одинаковые (правая повторяет левую). name слоя — своё название;
+  // пустая строка — стандартное («Слой 1» на текущем языке, см. layerName).
   // separateSymbols — цифры и спецсимволы на разных клавишах: Shift + цифра не даёт символ
   // (см. createModel).
   // keymap — записанная раскладка сплита («запоминание»): на основном слое это поправки
@@ -388,14 +389,25 @@ const JmakKeyboard = (function () {
           const e = normalizeEntry(src[pos]);
           if (e) keys[pos] = e;
         });
-        const name = l && typeof l.name === 'string' && l.name ? l.name.slice(0, 20) : layerName(i);
-        return { name, keys };
+        const name = l && typeof l.name === 'string' ? l.name.slice(0, 20) : '';
+        return { name: isDefaultLayerName(name, i) ? '' : name, keys };
       })
     };
   }
 
+  // Стандартное название слоя — на текущем языке интерфейса
   function layerName(i) {
-    return i === 0 ? 'Основной' : 'Слой ' + i;
+    return i === 0 ? JmakI18n.t('keyboard.baseLayer') : JmakI18n.t('keyboard.layer', { n: i });
+  }
+
+  // Стандартное название не храним (пустая строка): оно показывается на текущем языке.
+  // Узнаём его на любом языке — так переводятся и старые сохранения, где стандартное
+  // название записано по-русски («Слой 1»)
+  function isDefaultLayerName(name, i) {
+    const variants = i === 0
+      ? JmakI18n.variants('keyboard.baseLayer')
+      : JmakI18n.variants('keyboard.layer', { n: i });
+    return variants.includes(name);
   }
 
   const clampInt = (v, min, max, fallback) =>
