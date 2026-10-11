@@ -283,7 +283,8 @@ function flashKeys(positions, cls, ms) {
 function renderKeyboard(settings) {
   clearFlash();
   // Сплит — форма со страницы «Вид клавиатуры». У стандартной клавиатуры ряд F-клавиш
-  // и блок навигации появляются по наборам; на сплите их нет (там они на слоях)
+  // и блок навигации появляются по наборам; у сплита ряд F-клавиш есть, если в форме
+  // 5 рядов, а блока навигации нет (эти клавиши на слоях)
   const layout = kbConfig.type === 'split'
     ? JmakKeyboard.buildLayout({ type: 'split', split: kbConfig.split })
     : JmakKeyboard.buildLayout({

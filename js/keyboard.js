@@ -242,11 +242,13 @@ const JmakKeyboard = (function () {
   }
 
   // Что клавиши сплита отправляют по умолчанию — как на обычной QWERTY: буквенный блок
-  // на своих местах, во внешнем столбце соседи с обычной клавиатуры. Внутренний столбец
-  // и лишние клавиши под большой палец пустые — их задаст «запоминание» раскладки.
+  // на своих местах, во внешнем столбце соседи с обычной клавиатуры. Ряд F-клавиш —
+  // F1–F6 и F7–F12 от внешнего края (при 6 столбцах как раз все двенадцать). Внутренний
+  // столбец и лишние клавиши под большой палец пустые — их задаст «запоминание» раскладки.
   // thumb — от внутренней клавиши к внешней.
   const SPLIT_DEFAULTS = {
     left: {
+      fn: { outer: 'F1', pinky: 'F2', ring: 'F3', middle: 'F4', index: 'F5', index2: 'F6' },
       num: { outer: 'Backquote', pinky: 'Digit1', ring: 'Digit2', middle: 'Digit3', index: 'Digit4', index2: 'Digit5' },
       top: { outer: 'Tab', pinky: 'KeyQ', ring: 'KeyW', middle: 'KeyE', index: 'KeyR', index2: 'KeyT' },
       home: { outer: 'CapsLock', pinky: 'KeyA', ring: 'KeyS', middle: 'KeyD', index: 'KeyF', index2: 'KeyG' },
@@ -254,6 +256,7 @@ const JmakKeyboard = (function () {
       thumb: ['Space', 'AltLeft', 'MetaLeft']
     },
     right: {
+      fn: { outer: 'F12', pinky: 'F11', ring: 'F10', middle: 'F9', index: 'F8', index2: 'F7' },
       num: { outer: 'Minus', pinky: 'Digit0', ring: 'Digit9', middle: 'Digit8', index: 'Digit7', index2: 'Digit6' },
       top: { outer: 'BracketLeft', pinky: 'KeyP', ring: 'KeyO', middle: 'KeyI', index: 'KeyU', index2: 'KeyY' },
       home: { outer: 'Quote', pinky: 'Semicolon', ring: 'KeyL', middle: 'KeyK', index: 'KeyJ', index2: 'KeyH' },
@@ -262,11 +265,14 @@ const JmakKeyboard = (function () {
     }
   };
 
+  // Ряды половины сверху вниз: F-клавиши, цифры, три буквенных. Меньше рядов — нет верхних
+  const SPLIT_ROWS = ['fn', 'num', 'top', 'home', 'bot'];
+
   // Половина в «своих» координатах: x растёт от внешнего края к внутреннему.
-  // half: { cols: 5–7, rows: 3–4 (4 — с рядом цифр), thumbs: 0–6 }
+  // half: { cols: 5–7, rows: 3–5 (4 — с рядом цифр, 5 — ещё и с рядом F-клавиш), thumbs: 0–6 }
   function buildHalf(side, half, stagger) {
     const cols = splitColumns(half.cols);
-    const rows = half.rows >= 4 ? ['num', 'top', 'home', 'bot'] : ['top', 'home', 'bot'];
+    const rows = SPLIT_ROWS.slice(SPLIT_ROWS.length - half.rows);
     const offsets = STAGGER[stagger] || STAGGER.none;
     const defaults = SPLIT_DEFAULTS[side];
     const prefix = side === 'left' ? 'L' : 'R';
@@ -328,7 +334,7 @@ const JmakKeyboard = (function () {
 
   // Порядок обхода клавиш сплита при «запоминании» раскладки: левая половина по рядам
   // слева направо, затем правая, затем клавиши под большой палец — левые, правые
-  const ROW_ORDER = ['num', 'top', 'home', 'bot', 'thumb'];
+  const ROW_ORDER = SPLIT_ROWS.concat('thumb');
   function learningOrder(layout) {
     const group = k => (k.row === 'thumb' ? 2 : 0) + (k.hand === 'right' ? 1 : 0);
     return layout.keys.slice()
@@ -417,7 +423,7 @@ const JmakKeyboard = (function () {
     const d = h && typeof h === 'object' ? h : {};
     return {
       cols: clampInt(d.cols, 5, 7, 6),
-      rows: clampInt(d.rows, 3, 4, 3),
+      rows: clampInt(d.rows, 3, 5, 3),
       thumbs: clampInt(d.thumbs, 0, 6, 3)
     };
   }

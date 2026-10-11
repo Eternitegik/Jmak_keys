@@ -72,7 +72,7 @@ JmakI18n.register({
         "showSequence": "With “Show letter list” on, the keys that will come up in the task are highlighted yellow once it starts.",
         "flashes": "A correct press flashes green on the keyboard, a wrong one flashes red; the press time is shown below the keyboard.",
         "hands": "<b>“Hand guides”</b> — a stripe at the bottom of a key shows what to press it with when touch typing. “Split into halves”: purple — left hand, teal — right hand. “For each finger”: each finger has its own color, from pink (left pinky) to crimson (right pinky); gray — thumbs (Space, Alt).",
-        "extraKeys": "On a regular keyboard, the Esc and F1–F12 row appears when “F keys” or “Control keys” are on, and the Insert/Home/PgUp/Delete/End/PgDn block with arrows when “Control keys” are on. A split keyboard has no such keys — they're usually on layers; the task accepts them but doesn't show them on the diagram.",
+        "extraKeys": "On a regular keyboard, the Esc and F1–F12 row appears when “F keys” or “Control keys” are on, and the Insert/Home/PgUp/Delete/End/PgDn block with arrows when “Control keys” are on. On a split keyboard with five rows, the top row is the F keys; the other keys (and the F keys on a split without that row) are usually on layers — the task accepts them but doesn't show them on the diagram.",
         "hint": "<b>“Where-to-press hint”</b> — the target key is highlighted on the diagram together with its finger stripe: “Immediately” or “If I hesitate” (after 2 seconds if the key hasn't been pressed yet). By default there's no hint — you have to find the key yourself.",
         "blind": "<b>“Hide key labels”</b> — only the key shapes stay on the diagram (and the bumps on F/J): you have to remember where each character is.",
         "mistakes": "At the end, a “Mistakes” block appears — the keys you didn't hit on the first try: they deserve extra attention. The <b>“Retry mistakes”</b> button starts a task with just these keys (3 times each). Below it is a collapsed “Detailed results” table: key, all presses, mistakes, average press time."
@@ -151,7 +151,7 @@ JmakI18n.register({
       "left": "Left half",
       "right": "Right half",
       "cols": "Columns (6 — with the outer one, 7 — with the inner one too)",
-      "rows": "Rows (4 — with the number row)",
+      "rows": "Rows (4 — with the number row, 5 — with the F1–F12 row too)",
       "thumbs": "Thumb keys"
     },
     "preview": {
