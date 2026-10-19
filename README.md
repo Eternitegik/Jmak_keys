@@ -47,6 +47,7 @@ The project is written in plain HTML, CSS and JavaScript, with no third-party li
   - raising the difficulty step by step: hint “Immediately” → “If I hesitate” → “Never” → “Hide key labels”.
 - **Results at the end**:
   - “Mistakes” — the keys you didn't hit on the first try (or “No mistakes, well done!”), plus a “Retry mistakes” button;
+  - “Skipped characters” — the characters skipped with the “Skip” button: usually the ones you forgot to record in your keyboard layout;
   - a collapsed “Detailed results” table: target key, presses, number of mistakes, average press time.
 - **Proper handling of key combinations**:
   - Alt, Ctrl, Shift and Win count only as a single press (when released);
@@ -116,8 +117,8 @@ The demo is available at:
 4. In the right panel, press the key shown in the prompt (Space or Enter).
 5. After a countdown (3…2…1), the character to press appears on the screen.
 6. Press the right keys. The trainer measures the time and marks mistakes.
-7. You can stop the task with the **“Abort”** button.
-8. When all cycles are done, a “Mistakes” block appears with the keys you didn't hit on the first try, and below it a collapsed “Detailed results” table (click to expand):
+7. You can stop the task with the **“Abort”** button. The **“Skip”** button next to it moves on to the next character — for example, if it isn't on your keyboard.
+8. When all cycles are done, a “Mistakes” block appears with the keys you didn't hit on the first try, then a “Skipped characters” block (if you skipped any), and below them a collapsed “Detailed results” table (click to expand):
    - the target key;
    - the keys that were pressed (with times);
    - the number of mistakes;
@@ -230,6 +231,7 @@ SOFTWARE.
   - порядок усложнения: подсказка «Сразу» → «Если замешкался» → «Никогда» → «Скрыть подписи клавиш».
 - **Статистика по завершении**:
   - «Ошибки при нажатии» — клавиши, которые не удалось нажать с первого раза (или «Без ошибок, молодец!»), и кнопка «Повторить ошибки»;
+  - «Пропущенные символы» — символы, пропущенные кнопкой «Пропустить»: обычно это те, что забыли записать в раскладку клавиатуры;
   - свёрнутая таблица «Подробные результаты»: целевая клавиша, нажатия, количество ошибок, среднее время нажатия.
 - **Корректная работа с комбинациями клавиш**:
   - Alt, Ctrl, Shift и Win засчитываются только как одиночное нажатие (в момент отпускания);
@@ -299,8 +301,8 @@ SOFTWARE.
 4. В правой панели нажми клавишу, указанную в подсказке (Пробел или Enter).
 5. После обратного отсчёта (3…2…1) на экране появится символ, который нужно нажать.
 6. Нажимай правильные клавиши. Тренажёр будет засекать время и отмечать ошибки.
-7. Задание можно остановить кнопкой **«Прервать»**.
-8. По завершении всех циклов появится блок «Ошибки при нажатии» со списком клавиш, которые не удалось нажать с первого раза, а под ним — свёрнутая таблица «Подробные результаты» (раскрывается кликом):
+7. Задание можно остановить кнопкой **«Прервать»**. Кнопка **«Пропустить»** рядом с ней переходит к следующему символу — например, если его нет на твоей клавиатуре.
+8. По завершении всех циклов появится блок «Ошибки при нажатии» со списком клавиш, которые не удалось нажать с первого раза, затем блок «Пропущенные символы» (если что-то пропускалось), а под ними — свёрнутая таблица «Подробные результаты» (раскрывается кликом):
    - какая клавиша была целевой;
    - какие клавиши нажимались (с указанием времени);
    - количество ошибок;

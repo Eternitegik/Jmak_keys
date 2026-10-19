@@ -73,6 +73,7 @@ const repeatsSlider = document.getElementById('repeats');
 const repeatsVal = document.getElementById('repeatsVal');
 const applyBtn = document.getElementById('applyBtn');
 const abortBtn = document.getElementById('abortBtn');
+const skipBtn = document.getElementById('skipBtn');
 const themeToggle = document.getElementById('themeToggle');
 const langSelect = document.getElementById('langSelect');
 
@@ -715,9 +716,12 @@ function startTask() {
     }
   }
 
-  taskEvents = cyclesSymbols.map(sym => ({ target: sym, events: [] }));
+  // skipped — символ пропущен кнопкой «Пропустить»
+  taskEvents = cyclesSymbols.map(sym => ({ target: sym, events: [], skipped: false }));
 
   currentIndex = 0;
+  // «Пропустить» появляется вместе с первым символом (во время отсчёта пропускать нечего)
+  skipBtn.hidden = false;
   renderKeyboard(runSettings);
   // Клавиши, которые встретятся в задании, — жёлтым (текущую отдельно не выделяем)
   highlightTaskKeys();
@@ -733,6 +737,7 @@ function abortTask() {
   applyBtn.disabled = false;
   langSelect.disabled = false;
   abortBtn.hidden = true;
+  skipBtn.hidden = true;
   progressEl.textContent = '';
   setFeedback('');
   shownLayer = 0;
@@ -771,6 +776,7 @@ function finishTask() {
   applyBtn.disabled = false;
   langSelect.disabled = false;
   abortBtn.hidden = true;
+  skipBtn.hidden = true;
   setStatus(t('trainer.status.done'));
   setFeedback('');
   progressEl.textContent = '';
@@ -792,27 +798,50 @@ function finishTask() {
 // Клавиши, которые были нажаты не с первого раза: цели циклов, где было хотя бы
 // одно ошибочное нажатие, без повторов и в порядке появления. В режиме «Все»
 // к буквам добавлена раскладка — иначе «с» и «c» в списке не различить, а к символам
-// с другого слоя сплита — название слоя.
+// с другого слоя сплита — название слоя. Пропущенные циклы сюда не входят: у них свой
+// блок, а в «Повторить ошибки» их брать незачем — скорее всего, символа нет в раскладке.
 function missedSymbols() {
   const missed = [];
   taskEvents.forEach(item => {
-    if (item.events.some(e => !e.isCorrect) && !missed.includes(item.target)) {
+    if (!item.skipped && item.events.some(e => !e.isCorrect) && !missed.includes(item.target)) {
       missed.push(item.target);
     }
   });
   return missed;
 }
 
+// Символы, пропущенные кнопкой «Пропустить», — без повторов и в порядке появления
+function skippedSymbols() {
+  const skipped = [];
+  taskEvents.forEach(item => {
+    if (item.skipped && !skipped.includes(item.target)) skipped.push(item.target);
+  });
+  return skipped;
+}
+
+// Имена клавиш для списка в итогах (экранированные)
+function resultKeysHtml(symbols, cls) {
+  return symbols
+    .map(sym => `<b class="${cls}">${escapeHtml(displayKey(sym) + symbolHints(sym, runSettings))}</b>`)
+    .join(', ');
+}
+
 // Тексты перевода вставляются как есть (это свои файлы), клавиши — экранированными
 function renderMistakes(missed) {
-  const keys = missed
-    .map(sym => `<b class="mistakes-key">${escapeHtml(displayKey(sym) + symbolHints(sym, runSettings))}</b>`)
-    .join(', ');
+  const keys = resultKeysHtml(missed, 'mistakes-key');
   const text = missed.length === 0
     ? `<p class="mistakes-none">${t('trainer.results.noMistakes')}</p>`
     : `<p>${t('trainer.results.mistakes', { keys })}</p>` +
       `<button type="button" class="btn btn-primary" id="retryBtn">${t('trainer.results.retry')}</button>`;
   return `<div class="mistakes"><h3>${t('trainer.results.mistakesTitle')}</h3>${text}</div>`;
+}
+
+// «Пропущенные символы» — чаще всего это символы, которых нет в записанной раскладке
+function renderSkipped(skipped) {
+  if (skipped.length === 0) return '';
+  const keys = resultKeysHtml(skipped, 'skipped-key');
+  return `<div class="skipped"><h3>${t('trainer.results.skippedTitle')}</h3>` +
+    `<p>${t('trainer.results.skipped', { keys })}</p></div>`;
 }
 
 // «Повторить ошибки»: каждая клавиша с ошибкой RETRY_ROUNDS раз, круги перемешаны,
@@ -829,15 +858,18 @@ function buildRetrySequence(symbols) {
   return result;
 }
 
-// Итоги задания: блок ошибок (с кнопкой «Повторить ошибки») и под ним свёрнутая
-// таблица всех нажатий
+// Итоги задания: блок ошибок (с кнопкой «Повторить ошибки»), блок пропущенных символов
+// и под ними свёрнутая таблица всех нажатий. Если ошибок нет, но символы пропускали,
+// блок ошибок не показываем: «Без ошибок, молодец!» за пропуски не полагается
 function renderResults() {
   const missed = missedSymbols();
+  const skipped = skippedSymbols();
   const columns = [
     t('trainer.results.colNumber'), t('trainer.results.colTarget'), t('trainer.results.colPresses'),
     t('trainer.results.colErrors'), t('trainer.results.colAvgTime')
   ].map(text => `<th>${text}</th>`).join('');
-  let html = renderMistakes(missed) +
+  let html = (missed.length > 0 || skipped.length === 0 ? renderMistakes(missed) : '') +
+    renderSkipped(skipped) +
     `<details class="info results-details"><summary>${t('trainer.results.details')}</summary>` +
     `<div class="results-body"><table><thead><tr>${columns}</tr></thead><tbody>`;
   taskEvents.forEach((item, idx) => {
@@ -845,10 +877,12 @@ function renderResults() {
     const errors = events.filter(e => !e.isCorrect).length;
     const totalTime = events.reduce((sum, e) => sum + e.time, 0);
     const avgTime = events.length ? Math.round(totalTime / events.length) : 0;
-    const pressesHtml = events.map(e => {
+    const presses = events.map(e => {
       const cls = e.isCorrect ? 'event-correct' : 'event-wrong';
       return `<span class="${cls}">${t('trainer.results.press', { key: escapeHtml(displayKey(e.key)), time: e.time })}</span>`;
-    }).join(', ');
+    });
+    if (item.skipped) presses.push(`<span class="event-skipped">${t('trainer.results.skippedMark')}</span>`);
+    const pressesHtml = presses.join(', ');
     html += `<tr>
       <td>${idx + 1}</td>
       <td>${escapeHtml(displayKey(item.target))}</td>
@@ -877,6 +911,29 @@ abortBtn.addEventListener('click', () => {
   // чтобы Пробел/Enter запускали новое задание, а не нажимали её повторно
   abortBtn.blur();
 });
+
+skipBtn.addEventListener('click', () => {
+  skipSymbol();
+  // Иначе Пробел/Enter в задании «нажимали» бы кнопку, а не засчитывались как нажатие
+  skipBtn.blur();
+});
+
+// «Пропустить»: текущий символ (со всеми оставшимися повторами) отмечается пропущенным,
+// задание переходит к следующему символу. Во время паузы после верного нажатия
+// следующий символ ещё не показан — пропускать нечего
+function skipSymbol() {
+  if (state !== 'TASK' || inputLocked) return;
+  const cycleIndex = Math.floor(currentIndex / runSettings.repeats);
+  const cycle = taskEvents[cycleIndex];
+  if (!cycle) return;
+  cycle.skipped = true;
+  clearHint();
+  // Удерживаемый модификатор не должен засчитаться следующему символу
+  heldModifiers.clear();
+  setFeedback(t('trainer.feedback.skipped', { key: feedbackKey(currentSymbol) }), 'skipped');
+  currentIndex = (cycleIndex + 1) * runSettings.repeats;
+  nextSymbol(); // на последнем символе завершает задание
+}
 
 function dropStaleModifiers(e) {
   for (const key of heldModifiers.keys()) {

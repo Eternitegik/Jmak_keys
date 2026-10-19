@@ -80,7 +80,7 @@ JmakI18n.register({
       "layout": "Characters are typed in the layout selected in the settings (Russian / English).",
       "special": "<b>Special characters depend on the letter set:</b> with “Russian”, only characters typed in the Russian layout come up (<code>! \" % : ; ? * ( ) _ + - = \\ / , .</code>); with “English” and “All”, and when the letter set is “Off”, all special characters do (for those not available in the Russian layout, switch to English). Letter case is ignored.",
       "combos": "<b>Key combinations</b> (for example, Alt+Shift to switch layouts, Shift+1 for “!”) don't count. A single press of Alt, Ctrl, Shift or Win counts when the key is released; the reaction time is measured from the moment it was pressed.",
-      "abort": "You can stop the task with the “Abort” button.",
+      "abort": "You can stop the task with the “Abort” button. The “Skip” button moves on to the next character — for example, if it isn't on your keyboard. At the end, the “Skipped characters” block lists them: check that they are recorded in your layout on the “Keyboard setup” page.",
       "saved": "Settings are saved in the browser when you click “Apply” and are restored automatically the next time you open the page.",
       "language": "The interface language is chosen at the bottom of the settings; by default it follows your browser's language.",
       "tipsTitle": "Tips",
@@ -103,10 +103,12 @@ JmakI18n.register({
       "done": "Task complete!"
     },
     "abort": "Abort",
+    "skip": "Skip",
     "progress": "Cycle {cycle}/{cycles}, repeat {repeat}/{repeats}",
     "feedback": {
       "time": "{time} ms",
-      "wrong": "✗ {key} · {time} ms"
+      "wrong": "✗ {key} · {time} ms",
+      "skipped": "Skipped: {key}"
     },
     "layoutTag": {
       "ru": "Rus",
@@ -117,6 +119,9 @@ JmakI18n.register({
       "noMistakes": "No mistakes, well done!",
       "mistakes": "Keys you didn't hit on the first try: {keys}. Give them some extra attention.",
       "retry": "Retry mistakes",
+      "skippedTitle": "Skipped characters",
+      "skipped": "Characters you skipped: {keys}. Check that they are in your keyboard layout (the “Keyboard setup” page).",
+      "skippedMark": "skipped",
       "details": "Detailed results",
       "colNumber": "#",
       "colTarget": "Target key",

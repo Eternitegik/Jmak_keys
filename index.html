@@ -130,7 +130,7 @@
         <p data-i18n-html="trainer.info.layout">Символы набираются в той раскладке, которая выбрана в настройках (Рус / Eng).</p>
         <p data-i18n-html="trainer.info.special"><b>Спец. символы зависят от набора букв:</b> при «Рус» выпадают только символы, которые набираются в русской раскладке (<code>! " % : ; ? * ( ) _ + - = \ / , .</code>); при «Eng» и «Все», а также если набор букв «Откл», — все спец. символы (для тех, что не набираются в русской раскладке, переключитесь на английскую). Регистр букв не учитывается.</p>
         <p data-i18n-html="trainer.info.combos"><b>Комбинации клавиш</b> (например, Alt+Shift для смены раскладки, Shift+1 для «!») не засчитываются. Одиночное нажатие Alt, Ctrl, Shift или Win засчитывается в момент отпускания клавиши; время реакции при этом считается от её нажатия.</p>
-        <p data-i18n-html="trainer.info.abort">Задание можно остановить кнопкой «Прервать».</p>
+        <p data-i18n-html="trainer.info.abort">Задание можно остановить кнопкой «Прервать». Кнопка «Пропустить» переходит к следующему символу — например, если его нет на вашей клавиатуре. Пропущенные символы в конце покажет блок «Пропущенные символы»: проверьте, записаны ли они в раскладке на странице «Вид клавиатуры».</p>
         <p data-i18n-html="trainer.info.saved">Настройки сохраняются в браузере при нажатии «Применить» и подставляются автоматически при следующем открытии страницы.</p>
         <p data-i18n-html="trainer.info.language">Язык интерфейса выбирается внизу настроек; по умолчанию — язык браузера.</p>
         <p><b data-i18n="trainer.info.tipsTitle">Советы</b></p>
@@ -155,7 +155,10 @@
       <div class="status-text" id="statusText"></div>
       <div class="status-key" id="statusKey"></div>
     </div>
-    <button id="abortBtn" class="abort" hidden data-i18n="trainer.abort">Прервать</button>
+    <div class="task-buttons">
+      <button id="abortBtn" class="abort" hidden data-i18n="trainer.abort">Прервать</button>
+      <button id="skipBtn" class="skip" hidden data-i18n="trainer.skip">Пропустить</button>
+    </div>
 
     <div class="layer-tabs trainer-tabs" id="layerTabs" hidden></div>
     <div class="keyboard-wrap">

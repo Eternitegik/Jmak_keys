@@ -324,8 +324,15 @@ input[type="range"]:disabled {
   cursor: not-allowed;
 }
 
-.abort {
-  align-self: center;
+/* «Прервать» и «Пропустить» — в один ряд по центру */
+.task-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.abort,
+.skip {
   padding: 8px 24px;
   background: var(--bg-panel);
   color: var(--error);
@@ -341,9 +348,20 @@ input[type="range"]:disabled {
   background: var(--error-bg);
 }
 
+.skip {
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.skip:hover {
+  background: var(--warning-bg);
+}
+
 /* Скрытая кнопка не убирается из раскладки, а становится невидимой: место под ней
-   зарезервировано, поэтому клавиатура не сдвигается при старте и остановке задания */
-.abort[hidden] {
+   зарезервировано, поэтому клавиатура не сдвигается при старте и остановке задания,
+   а «Прервать» — при появлении «Пропустить» */
+.abort[hidden],
+.skip[hidden] {
   display: block;
   visibility: hidden;
 }
@@ -821,6 +839,18 @@ input[type="range"]:disabled {
   color: var(--error);
 }
 
+/* «Пропущено: X» — неброская плашка по ширине текста, чтобы не отвлекать от клавиатуры.
+   Высота та же 26px (padding + border + line-height), поэтому ниже ничего не сдвигается */
+.press-feedback.skipped {
+  align-self: center;
+  padding: 1px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  line-height: 22px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .progress {
   text-align: center;
   font-size: 15px;
@@ -839,8 +869,9 @@ input[type="range"]:disabled {
   font-size: 18px;
 }
 
-/* «Ошибки при нажатии» — карточка в стиле блока «Информация и советы» */
-.mistakes {
+/* «Ошибки при нажатии» и «Пропущенные символы» — карточки в стиле блока «Информация и советы» */
+.mistakes,
+.skipped {
   margin-bottom: 15px;
   padding: 14px 16px;
   background: var(--bg-panel);
@@ -849,7 +880,8 @@ input[type="range"]:disabled {
   box-shadow: var(--shadow-sm);
 }
 
-.mistakes p {
+.mistakes p,
+.skipped p {
   margin: 0;
   font-size: 15px;
   line-height: 1.5;
@@ -857,6 +889,10 @@ input[type="range"]:disabled {
 
 .mistakes-key {
   color: var(--error);
+}
+
+.skipped-key {
+  color: var(--warning);
 }
 
 .mistakes .mistakes-none {
@@ -905,6 +941,11 @@ input[type="range"]:disabled {
 .results .event-wrong {
   color: var(--error);
   font-weight: 600;
+}
+
+.results .event-skipped {
+  color: var(--warning);
+  font-style: italic;
 }
 
 /* ==================== СТРАНИЦА «ВИД КЛАВИАТУРЫ» (key_settings.html) ==================== */
