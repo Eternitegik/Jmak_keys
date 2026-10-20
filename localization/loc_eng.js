@@ -221,6 +221,8 @@ JmakI18n.register({
     "colPrevious": "Previous result",
     "colCurrent": "Current result",
     "colBest": "Best result",
+    "reset": "Reset",
+    "resetConfirm": "Reset the records table? All results will be deleted and can't be restored. To keep them, click “Save to file” first.",
     "backup": {
       "title": "Save and load",
       "note": "Save the records table to a file to move it to another browser or computer. Loading from a file replaces the current table.",

@@ -999,6 +999,16 @@ input[type="range"]:disabled {
   font-weight: 600;
 }
 
+/* «Сбросить» — под таблицей; при пустой таблице скрыта (display: flex у .btn-row
+   перебил бы атрибут hidden) */
+.records-actions {
+  margin-top: 12px;
+}
+
+.records-actions[hidden] {
+  display: none;
+}
+
 /* ==================== СТРАНИЦА «ВИД КЛАВИАТУРЫ» (key_settings.html) ==================== */
 .page {
   max-width: 760px;

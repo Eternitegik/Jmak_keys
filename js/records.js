@@ -9,6 +9,8 @@
   const recordsTable = $('recordsTable');
   const recordsBody = $('recordsBody');
   const recordsEmpty = $('recordsEmpty');
+  const recordsActions = $('recordsActions');
+  const resetBtn = $('resetBtn');
   const storageWarning = $('storageWarning');
   const storageWarningClose = $('storageWarningClose');
   const exportBtn = $('exportBtn');
@@ -39,6 +41,7 @@
     const items = JmakRecords.load();
     recordsTable.hidden = items.length === 0;
     recordsEmpty.hidden = items.length > 0;
+    recordsActions.hidden = items.length === 0; // сбрасывать нечего
     recordsBody.textContent = '';
     items.forEach(item => {
       // Текущий результат — зелёный, если быстрее предыдущего, красный — если медленнее
@@ -66,6 +69,15 @@
   // Задание завершили в соседней вкладке или вернулись на страницу кнопкой «Назад»
   window.addEventListener('storage', e => { if (e.key === JmakRecords.STORAGE_KEY) render(); });
   window.addEventListener('pageshow', e => { if (e.persisted) render(); });
+
+  // ---------- Сброс ----------
+  // Удаляет всю таблицу — только после подтверждения
+  resetBtn.addEventListener('click', () => {
+    resetBtn.blur();
+    if (!confirm(t('records.resetConfirm'))) return;
+    JmakRecords.save([]);
+    render();
+  });
 
   // ---------- Сохранение и загрузка ----------
   // Файл: { app: 'jmak-keys', kind: 'records', version, exported, records: [...] }
