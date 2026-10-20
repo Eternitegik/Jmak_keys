@@ -852,7 +852,7 @@ function renderMistakes(missed) {
   const text = missed.length === 0
     ? `<p class="mistakes-none">${t('trainer.results.noMistakes')}</p>`
     : `<p>${t('trainer.results.mistakes', { keys })}</p>` +
-      `<button type="button" class="btn btn-primary" id="retryBtn">${t('trainer.results.retry')}</button>`;
+      `<button type="button" class="btn btn-outline" id="retryBtn">${t('trainer.results.retry')}</button>`;
   return `<div class="mistakes"><h3>${t('trainer.results.mistakesTitle')}</h3>${text}</div>`;
 }
 

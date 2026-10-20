@@ -1145,6 +1145,20 @@ input[type="range"]:disabled {
   border-color: var(--accent-hover);
 }
 
+/* Спокойная кнопка в цветах «Рекордов»: прозрачный фон, синие текст и обводка
+   (обводка толще на 1px — отступ меньше на 1px, размер как у остальных .btn) */
+.btn-outline {
+  padding: 7px 13px;
+  color: var(--accent);
+  background: transparent;
+  border: 2px solid var(--accent);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--bg-subtle);
+  border-color: var(--accent);
+}
+
 .btn-row {
   display: flex;
   flex-wrap: wrap;
