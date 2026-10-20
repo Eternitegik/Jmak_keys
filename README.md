@@ -49,6 +49,10 @@ The project is written in plain HTML, CSS and JavaScript, with no third-party li
   - “Mistakes” — the keys you didn't hit on the first try (or “No mistakes, well done!”), plus a “Retry mistakes” button;
   - “Skipped characters” — the characters skipped with the “Skip” button: usually the ones you forgot to record in your keyboard layout;
   - a collapsed “Detailed results” table: target key, presses, number of mistakes, average press time.
+- **Records page**:
+  - after every completed task, the average time of correct presses of each character is added to a table on the “Records” page (button at the bottom of the settings panel): previous, current and best result in ms;
+  - every character that has ever appeared in a task stays in the table, new ones are added at the end; aborted tasks don't count;
+  - the table is stored in localStorage and can be saved to a JSON file and loaded from it (loading replaces the table).
 - **Proper handling of key combinations**:
   - Alt, Ctrl, Shift and Win count only as a single press (when released);
   - combinations (Alt+Shift to switch layouts, Shift+1 for “!”, etc.) are skipped and don't count as mistakes.
@@ -123,6 +127,7 @@ The demo is available at:
    - the keys that were pressed (with times);
    - the number of mistakes;
    - the average press time.
+9. The **“Records”** button at the bottom of the settings panel opens the records table: previous, current and best result for every character you have practiced.
 
 ### 🌍 Localization
 
@@ -143,10 +148,13 @@ The list is needed because a browser can't read which files are in a folder. If 
     Jmak_keys/
     ├── index.html          # Trainer page
     ├── key_settings.html   # Keyboard setup page (standard / split)
+    ├── records.html        # Records page (speed per character)
     ├── js/
     │   ├── script.js       # Trainer logic
-    │   ├── keyboard.js     # On-screen keyboard: model (shape + layout by layers) and rendering, shared by both pages
+    │   ├── keyboard.js     # On-screen keyboard: model (shape + layout by layers) and rendering, shared by the pages
     │   ├── key_settings.js # Keyboard setup page logic
+    │   ├── records_store.js # Records storage (localStorage), shared by the trainer and the records page
+    │   ├── records.js      # Records page logic: table, save to file / load from file
     │   └── i18n.js         # Localization: loading translations, choosing the language, translating the page
     ├── localization/
     │   ├── languages.js    # Language list
@@ -233,6 +241,10 @@ SOFTWARE.
   - «Ошибки при нажатии» — клавиши, которые не удалось нажать с первого раза (или «Без ошибок, молодец!»), и кнопка «Повторить ошибки»;
   - «Пропущенные символы» — символы, пропущенные кнопкой «Пропустить»: обычно это те, что забыли записать в раскладку клавиатуры;
   - свёрнутая таблица «Подробные результаты»: целевая клавиша, нажатия, количество ошибок, среднее время нажатия.
+- **Страница рекордов**:
+  - после каждого завершённого задания среднее время верных нажатий каждого символа попадает в таблицу на странице «Рекорды» (кнопка внизу панели настроек): предыдущий, текущий и лучший результат в мс;
+  - символы, которые хоть раз были в задании, остаются в таблице, новые дописываются в конец; прерванные задания не учитываются;
+  - таблица хранится в localStorage, её можно сохранить в JSON-файл и загрузить из него (загрузка заменяет таблицу).
 - **Корректная работа с комбинациями клавиш**:
   - Alt, Ctrl, Shift и Win засчитываются только как одиночное нажатие (в момент отпускания);
   - комбинации (Alt+Shift для смены раскладки, Shift+1 для «!» и т.п.) пропускаются и не дают ошибок.
@@ -307,6 +319,7 @@ SOFTWARE.
    - какие клавиши нажимались (с указанием времени);
    - количество ошибок;
    - среднее время нажатия.
+9. Кнопка **«Рекорды»** внизу панели настроек открывает таблицу рекордов: предыдущий, текущий и лучший результат по каждому символу, который ты тренировал.
 
 ### 🌍 Локализация
 
@@ -327,10 +340,13 @@ SOFTWARE.
     Jmak_keys/
     ├── index.html          # Страница тренажёра
     ├── key_settings.html   # Страница настройки вида клавиатуры (стандартная / сплит)
+    ├── records.html        # Страница рекордов (скорость по символам)
     ├── js/
     │   ├── script.js       # Логика тренажёра
     │   ├── keyboard.js     # Экранная клавиатура: модель (форма + раскладка по слоям) и отрисовка, общая для страниц
     │   ├── key_settings.js # Логика страницы настройки вида клавиатуры
+    │   ├── records_store.js # Хранилище рекордов (localStorage), общее для тренажёра и страницы рекордов
+    │   ├── records.js      # Логика страницы рекордов: таблица, сохранение в файл / загрузка из файла
     │   └── i18n.js         # Локализация: загрузка переводов, выбор языка, перевод страницы
     ├── localization/
     │   ├── languages.js    # Список языков

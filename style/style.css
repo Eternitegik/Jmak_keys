@@ -405,6 +405,33 @@ input[type="range"]:disabled {
   margin-bottom: 12px;
 }
 
+/* «Рекорды» — ссылка на страницу рекордов в виде кнопки той же формы, что «Применить»,
+   но спокойнее: прозрачный фон и синяя обводка, чтобы не спорить с «Применить» */
+.records-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.records-btn:hover {
+  background: var(--bg-subtle);
+}
+
+.records-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ----- Переключатель темы ----- */
 .theme-toggle {
   padding-top: 12px;
@@ -910,7 +937,8 @@ input[type="range"]:disabled {
   overflow-x: auto;
 }
 
-.results table {
+.results table,
+.records-table {
   width: 100%;
   border-collapse: collapse;
   background: var(--bg-panel);
@@ -920,14 +948,17 @@ input[type="range"]:disabled {
 }
 
 .results th,
-.results td {
+.results td,
+.records-table th,
+.records-table td {
   border: 1px solid var(--border-color);
   padding: 10px 12px;
   text-align: center;
   font-size: 14px;
 }
 
-.results th {
+.results th,
+.records-table th {
   background: var(--bg-subtle);
   font-weight: 600;
   color: var(--text-primary);
@@ -946,6 +977,26 @@ input[type="range"]:disabled {
 .results .event-skipped {
   color: var(--warning);
   font-style: italic;
+}
+
+/* ==================== СТРАНИЦА «РЕКОРДЫ» (records.html) ==================== */
+.records-wrap {
+  overflow-x: auto;
+}
+
+/* Текущий результат относительно предыдущего: быстрее — зелёный, медленнее — красный */
+.records-table .record-faster {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.records-table .record-slower {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.records-table .record-best {
+  font-weight: 600;
 }
 
 /* ==================== СТРАНИЦА «ВИД КЛАВИАТУРЫ» (key_settings.html) ==================== */

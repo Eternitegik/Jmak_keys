@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // Та же тема, что и на странице тренажёра (переключатель — там). Применяем до
+  // отрисовки, чтобы не было мигания тёмной темой перед светлой.
+  (function () {
+    try {
+      if (localStorage.getItem('jmak-theme') === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } catch (e) {}
+  })();
+</script>
+<!-- Переводы: модуль локализации, затем список языков (он подключает файлы переводов).
+     Язык выбирается на странице тренажёра -->
+<script src="js/i18n.js"></script>
+<script src="localization/languages.js"></script>
+<title data-i18n="records.title">Жмяк — рекорды</title>
+<link rel="stylesheet" href="style/style.css">
+</head>
+<body>
+
+<!-- Тексты разметки — на русском как запасной вариант; при загрузке их заменяет перевод
+     по ключам data-i18n (см. js/i18n.js) -->
+<div class="page">
+  <header class="page-header">
+    <a class="nav-link" href="index.html" data-i18n="records.back">← К тренажёру</a>
+    <h1 data-i18n="records.heading">Рекорды</h1>
+    <p class="page-note" data-i18n="records.note">Среднее время верных нажатий каждого символа за задание, в миллисекундах. Таблица пополняется после каждого завершённого задания.</p>
+  </header>
+
+  <div class="storage-warning" id="storageWarning" role="alert" hidden>
+    <p data-i18n-html="storage.records"><b>Браузер не даёт сохранять данные.</b> Тренажёр не сможет записывать рекорды. Разрешите этому сайту сохранять файлы cookie и данные сайтов в настройках браузера и перезагрузите страницу.</p>
+    <button type="button" class="storage-warning-close" id="storageWarningClose" aria-label="Скрыть предупреждение" data-i18n-attr="aria-label:storage.close">✕</button>
+  </div>
+
+  <section class="card">
+    <p class="page-note" id="recordsEmpty" hidden data-i18n="records.empty">Результатов пока нет — пройдите задание в тренажёре.</p>
+    <div class="records-wrap">
+      <table class="records-table" id="recordsTable" hidden>
+        <thead>
+          <tr>
+            <th data-i18n="records.colSymbol">Символ</th>
+            <th data-i18n="records.colPrevious">Предыдущий результат</th>
+            <th data-i18n="records.colCurrent">Текущий результат</th>
+            <th data-i18n="records.colBest">Лучший результат</th>
+          </tr>
+        </thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 data-i18n="records.backup.title">Сохранение</h2>
+    <p class="page-note" data-i18n="records.backup.note">Сохраните таблицу рекордов в файл, чтобы перенести её в другой браузер или на другой компьютер. Загрузка из файла заменяет текущую таблицу.</p>
+    <div class="btn-row">
+      <button type="button" class="btn btn-primary" id="exportBtn" data-i18n="records.backup.export">Сохранить в файл</button>
+      <button type="button" class="btn" id="importBtn" data-i18n="records.backup.import">Загрузить из файла</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+    <p class="page-note backup-status" id="backupStatus" aria-live="polite"></p>
+  </section>
+</div>
+
+<!-- Перевод разметки — сразу после её разбора, до загрузки скриптов страницы -->
+<script>JmakI18n.translatePage();</script>
+<script src="js/keyboard.js"></script>
+<script src="js/records_store.js"></script>
+<script src="js/records.js"></script>
+</body>
+</html>

@@ -22,6 +22,7 @@ JmakI18n.register({
   "storage": {
     "trainer": "<b>Your browser doesn't allow saving data.</b> The trainer works, but settings, theme and language won't be remembered until next time, and the split keyboard from the “Keyboard setup” page won't get here. Allow this site to store cookies and site data in your browser settings and reload the page.",
     "keySettings": "<b>Your browser doesn't allow saving data.</b> Changes on this page won't reach the trainer and will be lost on reload. Allow this site to store cookies and site data in your browser settings and reload the page.",
+    "records": "<b>Your browser doesn't allow saving data.</b> The trainer won't be able to record your results. Allow this site to store cookies and site data in your browser settings and reload the page.",
     "close": "Hide warning"
   },
   "trainer": {
@@ -51,6 +52,7 @@ JmakI18n.register({
       "repeats": "Repeats per key",
       "apply": "Apply",
       "keyboardLink": "Keyboard setup →",
+      "recordsLink": "Records",
       "darkTheme": "Dark theme",
       "language": "Language"
     },
@@ -75,7 +77,8 @@ JmakI18n.register({
         "extraKeys": "On a regular keyboard, the Esc and F1–F12 row appears when “F keys” or “Control keys” are on, and the Insert/Home/PgUp/Delete/End/PgDn block with arrows when “Control keys” are on. On a split keyboard with five rows, the top row is the F keys; the other keys (and the F keys on a split without that row) are usually on layers — the task accepts them but doesn't show them on the diagram.",
         "hint": "<b>“Where-to-press hint”</b> — the target key is highlighted on the diagram together with its finger stripe: “Immediately” or “If I hesitate” (after 2 seconds if the key hasn't been pressed yet). By default there's no hint — you have to find the key yourself.",
         "blind": "<b>“Hide key labels”</b> — only the key shapes stay on the diagram (and the bumps on F/J): you have to remember where each character is.",
-        "mistakes": "At the end, a “Mistakes” block appears — the keys you didn't hit on the first try: they deserve extra attention. The <b>“Retry mistakes”</b> button starts a task with just these keys (3 times each). Below it is a collapsed “Detailed results” table: key, all presses, mistakes, average press time."
+        "mistakes": "At the end, a “Mistakes” block appears — the keys you didn't hit on the first try: they deserve extra attention. The <b>“Retry mistakes”</b> button starts a task with just these keys (3 times each). Below it is a collapsed “Detailed results” table: key, all presses, mistakes, average press time.",
+        "records": "The <b>“Records”</b> page (button at the bottom of the settings) collects the speed of every character that has appeared in your tasks: previous, current and best result — the average time of correct presses per task. The table can be saved to a file and loaded from a file."
       },
       "layout": "Characters are typed in the layout selected in the settings (Russian / English).",
       "special": "<b>Special characters depend on the letter set:</b> with “Russian”, only characters typed in the Russian layout come up (<code>! \" % : ; ? * ( ) _ + - = \\ / , .</code>); with “English” and “All”, and when the letter set is “Off”, all special characters do (for those not available in the Russian layout, switch to English). Letter case is ignored.",
@@ -205,6 +208,29 @@ JmakI18n.register({
       "importConfirm": "Replace the current keyboard settings, layout and trainer settings with the data from the file?",
       "imported": "Settings loaded from the file",
       "importSaveFailed": "Couldn't save the settings: browser storage is unavailable",
+      "readFailed": "Couldn't read the file"
+    }
+  },
+  "records": {
+    "title": "Jmak — records",
+    "back": "← Back to trainer",
+    "heading": "Records",
+    "note": "Average time of correct presses of each character per task, in milliseconds. The table grows after every completed task.",
+    "empty": "No results yet — complete a task in the trainer.",
+    "colSymbol": "Character",
+    "colPrevious": "Previous result",
+    "colCurrent": "Current result",
+    "colBest": "Best result",
+    "backup": {
+      "title": "Save and load",
+      "note": "Save the records table to a file to move it to another browser or computer. Loading from a file replaces the current table.",
+      "export": "Save to file",
+      "import": "Load from file",
+      "exported": "Saved to {file}",
+      "notRecords": "This isn't a Jmak records file — the table wasn't changed",
+      "importConfirm": "Replace the current records table with the data from the file?",
+      "imported": "Records loaded from the file",
+      "importSaveFailed": "Couldn't save the records: browser storage is unavailable",
       "readFailed": "Couldn't read the file"
     }
   }

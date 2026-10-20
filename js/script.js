@@ -783,6 +783,7 @@ function finishTask() {
   shownLayer = 0;
   refreshKeyboard(); // снимает жёлтый и вспышки, возвращает предпросмотр на основном слое
   renderResults();
+  saveRecords();
   currentStartKey = Math.random() < 0.5 ? ' ' : 'Enter';
   requestAnimationFrame(() => {
     jmyakPanel.scrollTop = jmyakPanel.scrollHeight;
@@ -793,6 +794,25 @@ function finishTask() {
     // Не затираем отсчёт/задание, если пользователь уже запустил новое
     if (state === 'FINISHED' || state === 'IDLE') updateStartPrompt();
   }, 1500);
+}
+
+// Рекорды (страница «Рекорды», records_store.js): для каждого символа задания — среднее
+// время его верных нажатий. Символ может встретиться в нескольких циклах — берём нажатия
+// из всех. Символ без верных нажатий (пропущен сразу) не записывается
+function saveRecords() {
+  const times = new Map();
+  taskEvents.forEach(item => {
+    item.events.forEach(e => {
+      if (!e.isCorrect) return;
+      if (!times.has(item.target)) times.set(item.target, []);
+      times.get(item.target).push(e.time);
+    });
+  });
+  const averages = new Map();
+  times.forEach((list, sym) => {
+    averages.set(sym, Math.round(list.reduce((sum, time) => sum + time, 0) / list.length));
+  });
+  JmakRecords.addTaskResults(averages);
 }
 
 // Клавиши, которые были нажаты не с первого раза: цели циклов, где было хотя бы
